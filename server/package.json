@@ -1,0 +1,22 @@
+{
+  "name": "vocilio-twilio-proxy",
+  "version": "1.0.0",
+  "description": "Twilio API proxy server for Vocilio Portal",
+  "main": "twilioProxy.js",
+  "scripts": {
+    "start": "node twilioProxy.js",
+    "dev": "nodemon twilioProxy.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["twilio", "api", "proxy", "vocilio"],
+  "author": "Vocilio Team",
+  "license": "MIT"
+}
