@@ -16,7 +16,6 @@ class TelephonyAPI {
     this.telephonyAdapter = import.meta.env.VITE_TELEPHONY_ADAPTER_URL;
     this.ttsAdapter = import.meta.env.VITE_TTS_ADAPTER_URL;
     this.streamingTTS = import.meta.env.VITE_STREAMING_TTS_ADAPTER_URL;
-    this.tieredTTS = import.meta.env.VITE_TIERED_TTS_SERVICE_URL;
     this.voiceRouter = import.meta.env.VITE_VOICE_ROUTER_URL;
     this.asrAdapter = import.meta.env.VITE_ASR_ADAPTER_URL;
     this.vadService = import.meta.env.VITE_VAD_SERVICE_URL;
