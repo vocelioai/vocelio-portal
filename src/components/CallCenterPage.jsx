@@ -34,7 +34,7 @@ class TelephonyAPI {
     };
   }
 
-  // Make outbound call
+  // Make outbound call using telephony adapter
   async makeCall(phoneNumber, voiceTier = 'regular', selectedVoice = null) {
     try {
       const response = await fetch(`${this.telephonyAdapter}/api/calls/make`, {
@@ -42,9 +42,12 @@ class TelephonyAPI {
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
           to: phoneNumber,
-          voice_tier: voiceTier,
-          voice_id: selectedVoice,
-          from: import.meta.env.VITE_TWILIO_PHONE_NUMBER
+          from: import.meta.env.VITE_TWILIO_PHONE_NUMBER || "+1234567890", // Fallback number
+          message: "Hello, this is an AI assistant calling from Vocilio.",
+          voice_settings: {
+            provider: voiceTier === 'premium' ? 'elevenlabs' : 'azure',
+            voice_id: selectedVoice || (voiceTier === 'premium' ? 'pNInz6obpgDQGcFmaJgB' : 'en-US-AriaNeural')
+          }
         })
       });
       
@@ -100,33 +103,89 @@ class TelephonyAPI {
     }
   }
 
-  // Get available voices
-  async getVoices(tier = 'regular') {
+  // Get active calls from telephony adapter
+  async getActiveCalls() {
     try {
-      const response = await fetch(`${this.tieredTTS}/voices?tier=${tier}`, {
+      const response = await fetch(`${this.telephonyAdapter}/admin/active-calls`, {
         headers: this.getAuthHeaders()
       });
       
       if (!response.ok) {
-        throw new Error(`Voices fetch failed: ${response.status}`);
+        throw new Error(`Active calls fetch failed: ${response.status}`);
       }
       
       return await response.json();
+    } catch (error) {
+      console.error('❌ Get active calls error:', error);
+      throw error;
+    }
+  }
+
+  // Get available voices from TTS adapter
+  async getVoices(tier = 'regular') {
+    try {
+      // First, get tier configuration to understand which provider to use
+      const tierResponse = await fetch(`${this.ttsAdapter}/tiers`, {
+        headers: this.getAuthHeaders()
+      });
+      
+      if (!tierResponse.ok) {
+        throw new Error(`Tier fetch failed: ${tierResponse.status}`);
+      }
+      
+      const tierData = await tierResponse.json();
+      const tierConfig = tierData.tiers[tier];
+      
+      if (!tierConfig) {
+        throw new Error(`Unknown tier: ${tier}`);
+      }
+      
+      // Get voices for the tier's provider (azure or elevenlabs)
+      const provider = tierConfig.tts_provider;
+      const voicesResponse = await fetch(`${this.ttsAdapter}/voices/${provider}`, {
+        headers: this.getAuthHeaders()
+      });
+      
+      if (!voicesResponse.ok) {
+        throw new Error(`Voices fetch failed: ${voicesResponse.status}`);
+      }
+      
+      const voicesData = await voicesResponse.json();
+      
+      // Format the response to match the expected structure
+      return {
+        voices: voicesData.voices.map(voice => ({
+          id: voice.id,
+          name: voice.name,
+          provider: provider,
+          tier: tier,
+          language: voice.language || 'en-US',
+          gender: voice.gender || 'unknown'
+        })),
+        tier: tier,
+        provider: provider,
+        pricing: tierConfig.price_per_minute
+      };
     } catch (error) {
       console.error('❌ Get voices error:', error);
       throw error;
     }
   }
 
-  // Preview voice
-  async previewVoice(voiceId, text = "Hello, this is a voice preview") {
+  // Preview voice using synthesize endpoint
+  async previewVoice(voiceId, text = "Hello, this is a voice preview test") {
     try {
-      const response = await fetch(`${this.ttsAdapter}/voice/preview`, {
+      const response = await fetch(`${this.ttsAdapter}/synthesize`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({
+          text: text,
+          provider: 'auto',
           voice_id: voiceId,
-          text: text
+          language: 'en-US',
+          speed: 1.0,
+          customer_id: 'preview_test',
+          call_id: 'preview_' + Date.now()
         })
       });
       
@@ -134,7 +193,14 @@ class TelephonyAPI {
         throw new Error(`Voice preview failed: ${response.status}`);
       }
       
-      return await response.json();
+      // Return the audio blob for playback
+      const audioBlob = await response.blob();
+      return {
+        audio_blob: audioBlob,
+        audio_url: URL.createObjectURL(audioBlob),
+        provider: response.headers.get('Provider'),
+        voice_id: response.headers.get('Voice-ID')
+      };
     } catch (error) {
       console.error('❌ Voice preview error:', error);
       throw error;

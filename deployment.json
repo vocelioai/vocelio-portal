@@ -1,0 +1,51 @@
+{
+  "deployment": {
+    "name": "Vocilio Portal",
+    "version": "2.0.0",
+    "environment": "production",
+    "build_date": "2025-09-02",
+    "features": [
+      "World-class telephony system",
+      "Real-time call center",
+      "Premium voice synthesis",
+      "Live transcription",
+      "Phone number management",
+      "Global CDN distribution"
+    ]
+  },
+  "infrastructure": {
+    "gcp": {
+      "project_id": "vocilio-dashboard",
+      "bucket": "vocilio-portal-static", 
+      "cdn_ip": "35.227.201.121",
+      "regions": ["us-central1", "europe-west1", "asia-southeast1"]
+    },
+    "aws": {
+      "bucket": "vocilio-portal-app",
+      "region": "us-east-1",
+      "cloudfront": "enabled",
+      "price_class": "PriceClass_All"
+    }
+  },
+  "optimization": {
+    "gzip": true,
+    "brotli": true,
+    "cache_control": {
+      "assets": "public, max-age=31536000",
+      "html": "public, max-age=0, must-revalidate"
+    },
+    "cdn_settings": {
+      "min_ttl": 0,
+      "default_ttl": 86400,
+      "max_ttl": 31536000
+    }
+  },
+  "monitoring": {
+    "health_check": "/",
+    "performance_budget": {
+      "first_contentful_paint": "1.5s",
+      "largest_contentful_paint": "2.5s",
+      "cumulative_layout_shift": "0.1"
+    }
+  }
+}
