@@ -31,6 +31,9 @@ import serviceManager, {
 // Import enhanced phone number purchase component
 import PhoneNumberPurchasePage from './PhoneNumberPurchasePage';
 
+// Import world-class call center component
+import CallCenterPage from './CallCenterPage';
+
 // Enhanced Utility Components with AI Integration
 const EnhancedStatCard = ({ title, value, icon: Icon, color, prediction, trend }) => {
   const colorClasses = {
@@ -511,10 +514,7 @@ const PhoneNumbersSection = () => (
 
 const VoiceSettingsSection = () => (
   <div className="animate-fade-in">
-    <h2 className="text-2xl font-bold mb-6">Voice Settings</h2>
-    <div className="bg-white p-6 rounded-lg">
-      <p>Voice configuration and testing</p>
-    </div>
+    <CallCenterPage />
   </div>
 );
 
@@ -1042,7 +1042,7 @@ const VocilioDashboard = () => {
       icon: Phone,
       subitems: [
         { id: 'phone-numbers', label: 'Phone Numbers' },
-        { id: 'voice-settings', label: 'Voice Settings' },
+        { id: 'voice-settings', label: 'Call Center' },
         { id: 'call-flows', label: 'Call Flows' },
         { id: 'test-calls', label: 'Test Calls' }
       ]
