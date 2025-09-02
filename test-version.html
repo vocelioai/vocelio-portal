@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Version Test</title>
+</head>
+<body>
+    <h1>Testing app.vocelio.ai Version</h1>
+    <div id="result">Loading...</div>
+    
+    <script>
+        async function checkVersion() {
+            try {
+                const response = await fetch('http://app.vocelio.ai/');
+                const html = await response.text();
+                
+                // Extract JS file name
+                const jsMatch = html.match(/assets\/index-([a-f0-9]+)\.js/);
+                
+                if (jsMatch) {
+                    document.getElementById('result').innerHTML = `
+                        <p><strong>Current JS Version:</strong> ${jsMatch[1]}</p>
+                        <p><strong>Expected Version:</strong> 9d6760bc</p>
+                        <p><strong>Status:</strong> ${jsMatch[1] === '9d6760bc' ? '✅ Correct (Latest)' : '❌ Old (Cached)'}</p>
+                        <p><strong>Full filename:</strong> ${jsMatch[0]}</p>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = '❌ Could not find JS version';
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = '❌ Error: ' + error.message;
+            }
+        }
+        
+        checkVersion();
+        
+        // Check every 10 seconds
+        setInterval(checkVersion, 10000);
+    </script>
+</body>
+</html>

@@ -275,6 +275,9 @@ class TelephonyAPI {
 const CallCenterPage = () => {
   const [telephonyAPI] = useState(() => new TelephonyAPI());
   
+  // Audio context for enabling audio playback
+  const [audioEnabled, setAudioEnabled] = useState(false);
+  
   // Call state
   const [currentCall, setCurrentCall] = useState(null);
   const [callStatus, setCallStatus] = useState('idle'); // idle, dialing, ringing, connected, ended
@@ -299,6 +302,21 @@ const CallCenterPage = () => {
   // Transcript
   const [transcript, setTranscript] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
+
+  // Enable audio context on first user interaction
+  const enableAudio = useCallback(async () => {
+    if (!audioEnabled) {
+      try {
+        // Create a dummy audio context to enable audio
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        await audioContext.resume();
+        setAudioEnabled(true);
+        console.log('🔊 Audio context enabled');
+      } catch (error) {
+        console.error('Failed to enable audio context:', error);
+      }
+    }
+  }, [audioEnabled]);
 
   // Load voices on tier change
   useEffect(() => {
@@ -625,6 +643,7 @@ const CallCenterPage = () => {
               availableVoices={availableVoices}
               onLoadVoices={loadVoices}
               isLoading={isLoading}
+              onEnableAudio={enableAudio}
             />
 
             {/* Audio Controls */}

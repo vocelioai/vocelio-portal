@@ -8,56 +8,139 @@ const VoiceSelector = ({
   setSelectedVoice, 
   availableVoices, 
   onLoadVoices,
-  isLoading 
+  isLoading,
+  onEnableAudio
 }) => {
   const [previewLoading, setPreviewLoading] = useState(null);
   const [currentAudio, setCurrentAudio] = useState(null);
+  const [customScript, setCustomScript] = useState('');
+
+  const defaultScript = "Hello! This is a preview of this voice. How do I sound?";
+  const maxScriptLength = 500;
 
   const handleVoicePreview = async (voiceId) => {
     try {
+      // Enable audio context first
+      if (onEnableAudio) {
+        await onEnableAudio();
+      }
+      
       setPreviewLoading(voiceId);
+      console.log('🎵 Starting voice preview for:', voiceId);
       
       // Stop any currently playing audio
       if (currentAudio) {
         currentAudio.pause();
         currentAudio.currentTime = 0;
+        setCurrentAudio(null);
       }
 
-      // Get preview from TTS adapter
-      const response = await fetch(`${import.meta.env.VITE_TTS_ADAPTER_URL}/voice/preview`, {
+      // Find the voice object to get the correct provider
+      const voiceObj = availableVoices.find(v => v.id === voiceId);
+      const provider = voiceObj?.provider || (voiceTier === 'premium' ? 'elevenlabs' : 'azure');
+      
+      // ElevenLabs doesn't use language parameter the same way as Azure
+      const scriptText = customScript.trim() || defaultScript;
+      const requestBody = {
+        text: scriptText,
+        provider: provider,
+        voice_id: voiceId,
+        ...(provider === 'azure' ? { language: 'en-US' } : {}),
+        speed: 1.0,
+        customer_id: 'voice_preview',
+        call_id: 'preview_' + Date.now()
+      };
+      
+      console.log('🎵 Request body:', requestBody);
+      console.log('🎵 Using script:', scriptText.substring(0, 50) + (scriptText.length > 50 ? '...' : ''));
+      console.log('🎵 Using provider:', provider, 'for voice tier:', voiceTier);
+      console.log('🎵 Voice object:', voiceObj);
+      console.log('🎵 TTS URL:', `${import.meta.env.VITE_TTS_ADAPTER_URL}/synthesize`);
+
+      // Get preview from TTS adapter using synthesize endpoint
+      const response = await fetch(`${import.meta.env.VITE_TTS_ADAPTER_URL}/synthesize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
         },
-        body: JSON.stringify({
-          voice_id: voiceId,
-          text: "Hello! This is a preview of this voice. How do I sound?"
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('🎵 Response status:', response.status, response.statusText);
+      console.log('🎵 Response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        throw new Error('Preview failed');
+        const errorText = await response.text();
+        console.error('🎵 Response error:', errorText);
+        throw new Error(`Preview failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
-      const data = await response.json();
+      // Get audio blob from synthesize response
+      const audioBlob = await response.blob();
+      console.log('🎵 Audio blob size:', audioBlob.size, 'type:', audioBlob.type);
       
-      // Play audio preview
-      if (data.audio_url) {
-        const audio = new Audio(data.audio_url);
-        setCurrentAudio(audio);
-        
-        audio.onended = () => {
+      if (audioBlob.size === 0) {
+        throw new Error('Empty audio response from ' + provider);
+      }
+      
+      // Check if it's actually an error response in blob form
+      if (audioBlob.type.includes('text') || audioBlob.type.includes('json')) {
+        const errorText = await audioBlob.text();
+        console.error('🎵 Error response in blob:', errorText);
+        throw new Error('API returned error: ' + errorText);
+      }
+      
+      const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('🎵 Audio URL created:', audioUrl);
+      
+      // Create audio element with explicit user interaction handling
+      const audio = new Audio();
+      
+      // Set up event listeners before setting src
+      audio.onloadstart = () => console.log('🎵 Audio loading started');
+      audio.oncanplay = () => console.log('🎵 Audio can play');
+      audio.onloadeddata = () => {
+        console.log('🎵 Audio loaded successfully, duration:', audio.duration, 'provider:', provider);
+      };
+      
+      audio.onended = () => {
+          console.log('🎵 Audio playback ended');
           setPreviewLoading(null);
           setCurrentAudio(null);
+          URL.revokeObjectURL(audioUrl); // Clean up blob URL
         };
         
-        audio.onerror = () => {
+      audio.onerror = (error) => {
+          console.error('🎵 Audio playback error:', error, audio.error);
           setPreviewLoading(null);
           setCurrentAudio(null);
+          URL.revokeObjectURL(audioUrl); // Clean up blob URL
         };
-        
-        await audio.play();
+
+      // Set the audio source
+      audio.src = audioUrl;
+      setCurrentAudio(audio);
+      
+      // Load the audio
+      audio.load();
+      
+      console.log('🎵 Starting audio playback...');
+      
+      // Try to play with proper error handling
+      try {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          await playPromise;
+          console.log('🎵 Audio play() called successfully');
+        }
+      } catch (playError) {
+        console.error('🎵 Play promise rejected:', playError);
+        if (playError.name === 'NotAllowedError') {
+          console.log('🎵 Audio blocked by browser - user interaction required');
+          // You might want to show a message to the user here
+        }
+        throw playError;
       }
       
     } catch (error) {
@@ -138,6 +221,52 @@ const VoiceSelector = ({
               <span className="font-medium">Premium</span>
             </div>
             <div className="text-xs text-gray-500">High quality</div>
+          </button>
+        </div>
+      </div>
+
+      {/* Custom Script Input */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Test Script (Optional)
+        </label>
+        <div className="relative">
+          <textarea
+            value={customScript}
+            onChange={(e) => {
+              if (e.target.value.length <= maxScriptLength) {
+                setCustomScript(e.target.value);
+              }
+            }}
+            placeholder="Enter your custom script to test with voices, or leave empty for default preview..."
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none transition-colors"
+            rows={3}
+            maxLength={maxScriptLength}
+          />
+          <div className="absolute bottom-2 right-2 text-xs text-gray-500">
+            {customScript.length}/{maxScriptLength}
+          </div>
+        </div>
+        {customScript.trim() && (
+          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-blue-700">
+              <Volume2 className="h-4 w-4" />
+              <span>Voice previews will use your custom script</span>
+            </div>
+          </div>
+        )}
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={() => setCustomScript('')}
+            className="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            Clear Script
+          </button>
+          <button
+            onClick={() => setCustomScript('Hi there! I hope you\'re having a great day. I\'m calling from Vocilio to discuss how our AI calling platform can help streamline your sales process and increase your conversion rates. Do you have a few minutes to chat?')}
+            className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            Load Sales Script Example
           </button>
         </div>
       </div>
