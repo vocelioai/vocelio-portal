@@ -518,12 +518,12 @@ const VoiceSettingsSection = () => (
   </div>
 );
 
+// Import FlowDesigner
+import FlowDesigner from './FlowDesigner';
+
 const CallFlowsSection = () => (
-  <div className="animate-fade-in">
-    <h2 className="text-2xl font-bold mb-6">Call Flows</h2>
-    <div className="bg-white p-6 rounded-lg">
-      <p>Call flow builder and management</p>
-    </div>
+  <div className="animate-fade-in h-full">
+    <FlowDesigner />
   </div>
 );
 
