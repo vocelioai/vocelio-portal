@@ -23,6 +23,8 @@ import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalett
 import VoiceSelector from './VoiceSelector';
 import CallCostTracker from './CallCostTracker';
 import PricingValidationModal from './PricingValidationModal';
+import ProductionFlowManager from './ProductionFlowManager';
+import PhoneNumberFlowManager from './PhoneNumberFlowManager';
 
   // Import our new schema and components
   import { NodeTypeConfig } from '../lib/flowSchemas';
@@ -76,6 +78,9 @@ const VocelioAIPlatform = () => {
   const [collaborationOpen, setCollaborationOpen] = useState(false);
   const [aiOptimizerOpen, setAiOptimizerOpen] = useState(false);
   const [advancedNodesOpen, setAdvancedNodesOpen] = useState(false);
+  const [productionFlowManagerOpen, setProductionFlowManagerOpen] = useState(false);
+  const [phoneNumberFlowManagerOpen, setPhoneNumberFlowManagerOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Global Prompt State Management
   const [globalPrompt, setGlobalPrompt] = useState(() => {
@@ -866,10 +871,78 @@ You're calling {{customer_name}} because you came across their company and saw t
     setPendingCall(null);
   }, []);
 
-  const promoteToProduction = useCallback(() => {
-    showNotification('Successfully promoted to production!', 'success');
-    closeModal();
-  }, [showNotification]);
+  const promoteToProduction = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      // 1. Prepare flow data for deployment
+      const flowData = {
+        id: `flow_${Date.now()}`,
+        name: `Production Flow ${new Date().toLocaleDateString()}`,
+        nodes: nodes,
+        edges: edges,
+        version: '1.0.0',
+        status: 'active',
+        created_at: new Date().toISOString(),
+        phone_numbers: [import.meta.env.VITE_TWILIO_PHONE_NUMBER || '+13072249663'],
+        global_prompt: globalPrompt,
+        voice_settings: globalVoiceSettings
+      };
+
+      // 2. Deploy to Flow Processor
+      const deployResponse = await fetch(`${import.meta.env.VITE_FLOW_PROCESSOR_URL}/flows`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
+        body: JSON.stringify(flowData)
+      });
+
+      if (!deployResponse.ok) {
+        throw new Error(`Deployment failed: ${deployResponse.status}`);
+      }
+
+      const deployResult = await deployResponse.json();
+
+      // 3. Register flow with Telephony Adapter for incoming calls
+      const telephonyResponse = await fetch(`${import.meta.env.VITE_TELEPHONY_ADAPTER_URL}/admin/register-flow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
+        body: JSON.stringify({
+          flow_id: flowData.id,
+          phone_numbers: flowData.phone_numbers,
+          webhook_url: `${import.meta.env.VITE_FLOW_PROCESSOR_URL}/webhook/execute`
+        })
+      });
+
+      if (telephonyResponse.ok) {
+        showNotification(`✅ Flow deployed successfully! ID: ${flowData.id}`, 'success');
+        
+        // Store deployed flow info for monitoring
+        const deployedFlows = JSON.parse(localStorage.getItem('deployed_flows') || '[]');
+        deployedFlows.push({
+          ...flowData,
+          deployed_at: new Date().toISOString(),
+          status: 'live'
+        });
+        localStorage.setItem('deployed_flows', JSON.stringify(deployedFlows));
+        
+      } else {
+        showNotification('⚠️ Flow deployed but telephony registration failed', 'warning');
+      }
+      
+    } catch (error) {
+      console.error('Deployment error:', error);
+      showNotification(`❌ Deployment failed: ${error.message}`, 'error');
+    } finally {
+      setIsLoading(false);
+      closeModal();
+    }
+  }, [nodes, edges, globalPrompt, globalVoiceSettings, showNotification, setIsLoading]);
 
   // Global Prompt Management
   const saveGlobalPrompt = useCallback(async () => {
@@ -1545,6 +1618,8 @@ Your goal is to establish credibility and guide interactions with confident expe
     { icon: '📞', label: 'Send Call', action: () => showModal('sendCall') },
     { icon: '🌐', label: 'Web Client', action: () => showModal('webClient') },
     { icon: '🚀', label: 'Promote to Production', action: () => showModal('promoteProduction') },
+    { icon: '📊', label: 'Production Manager', action: () => setProductionFlowManagerOpen(true) },
+    { icon: '📞', label: 'Phone → Flow Setup', action: () => setPhoneNumberFlowManagerOpen(true) },
     { icon: '📊', label: 'Flow Analytics', action: () => setAnalyticsOpen(true) },
     { icon: '👥', label: 'Collaborate', action: () => setCollaborationOpen(true) },
     { icon: '🧠', label: 'AI Optimizer', action: () => setAiOptimizerOpen(true) },
@@ -3258,6 +3333,18 @@ Your goal is to establish credibility and guide interactions with confident expe
         isOpen={flowTemplateBrowserOpen}
         onTemplateSelect={handleFlowTemplateSelect}
         onClose={() => setFlowTemplateBrowserOpen(false)}
+      />
+
+      {/* Production Flow Manager */}
+      <ProductionFlowManager
+        isOpen={productionFlowManagerOpen}
+        onClose={() => setProductionFlowManagerOpen(false)}
+      />
+
+      {/* Phone Number Flow Manager */}
+      <PhoneNumberFlowManager
+        isOpen={phoneNumberFlowManagerOpen}
+        onClose={() => setPhoneNumberFlowManagerOpen(false)}
       />
 
       {/* Flow Template Manager */}
