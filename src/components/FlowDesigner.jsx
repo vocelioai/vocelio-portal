@@ -697,11 +697,10 @@ const VocelioAIPlatform = () => {
 
   // Sidebar items
   const sidebarItems = [
-    { icon: '🔗', label: 'Add New Node', action: () => showModal('addNode') },
-    { icon: '📋', label: 'Node Templates', action: () => setTemplateBrowserOpen(true) },
-    { icon: ' ', label: 'Flow Templates', action: () => setFlowTemplateBrowserOpen(true) },
+    { icon: '�', label: 'Node Library', action: () => setTemplateBrowserOpen(true) },
+    { icon: '🗂️', label: 'Flow Templates', action: () => setFlowTemplateBrowserOpen(true) },
     { icon: '⚙️', label: 'Manage Templates', action: () => setFlowTemplateManagerOpen(true) },
-    { icon: ' 🌍', label: 'Global Prompt', action: () => showModal('globalPrompt') },
+    { icon: '🌍', label: 'Global Prompt', action: () => showModal('globalPrompt') },
     { icon: '🎯', label: 'Feature Flags', action: () => {} },
     { icon: '🧪', label: 'Test Pathway', action: () => showModal('testPathway') },
     { icon: '📞', label: 'Send Call', action: () => showModal('sendCall') },
@@ -714,7 +713,7 @@ const VocelioAIPlatform = () => {
   ];
 
   return (
-    <div className={`h-screen flex flex-col ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
+    <div className={`h-screen flex flex-col ${isDarkMode ? 'dark bg-gray-900' : 'bg-gradient-to-br from-gray-50 via-white to-blue-50/20'}`}>
       {/* Notifications */}
       <FlowDesignerNotifications notifications={notifications} />
 
@@ -835,13 +834,22 @@ const VocelioAIPlatform = () => {
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => showModal('addNode')}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 z-30"
-      >
-        <Plus size={24} />
-      </button>
+      {/* Floating Action Button - Primary Node Creation */}
+      <div className="fixed bottom-8 right-8 z-30 group">
+        <button
+          onClick={() => showModal('addNode')}
+          className="w-16 h-16 bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-2xl text-white shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 transition-all duration-300 transform hover:scale-110 hover:-translate-y-1 backdrop-blur-xl border border-white/20 relative"
+          title="Add New Node"
+        >
+          <Plus size={28} className="drop-shadow-sm" />
+        </button>
+        
+        {/* Tooltip */}
+        <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+          Add New Node
+          <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+        </div>
+      </div>
 
       {/* Command Palette */}
       <FlowDesignerCommandPalette
@@ -853,36 +861,36 @@ const VocelioAIPlatform = () => {
 
       {/* Modals */}
       {activeModal === 'addNode' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className={`rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
+            isDarkMode ? 'bg-gray-800/95 border-gray-600/50' : 'bg-white/95 border-gray-200/50'
           }`}>
             <div className={`flex items-center justify-between p-6 border-b ${
-              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              isDarkMode ? 'border-gray-700/50 bg-gray-700/30' : 'border-gray-200/50 bg-gray-50/60'
             }`}>
-              <h2 className={`text-2xl font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>Add New Node</h2>
-              <button onClick={closeModal} className={`p-2 rounded-lg transition-colors ${
-                isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+              <h2 className={`text-2xl font-bold ${
+                isDarkMode ? 'text-white' : 'text-gray-800'
+              }`}>Create New Node</h2>
+              <button onClick={closeModal} className={`p-2.5 rounded-xl transition-all duration-200 transform hover:scale-110 ${
+                isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-200 text-gray-600'
               }`}>
                 <X size={20} />
               </button>
             </div>
 
             <div className={`flex border-b ${
-              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
             }`}>
               {['featured', 'library'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-3 border-b-2 transition-colors ${
+                  className={`px-8 py-4 border-b-2 transition-all duration-200 font-semibold ${
                     activeTab === tab
-                      ? 'border-blue-600 text-blue-600'
+                      ? 'border-blue-500 text-blue-600 bg-blue-50/50'
                       : isDarkMode 
-                        ? 'border-transparent text-gray-400 hover:text-gray-200' 
-                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                        ? 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-gray-700/30' 
+                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50/50'
                   }`}
                 >
                   {tab === 'featured' ? 'Featured Nodes' : 'Node Library'}
@@ -934,20 +942,20 @@ const VocelioAIPlatform = () => {
 
       {/* Edit Node Modal */}
       {activeModal === 'editNode' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={(e) => {
           if (e.target === e.currentTarget) closeModal();
         }}>
-          <div className={`rounded-xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          <div className={`rounded-3xl shadow-2xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto border backdrop-blur-xl ${
+            isDarkMode ? 'bg-gray-800/95 border-gray-600/50' : 'bg-white/95 border-gray-200/50'
           }`} onClick={(e) => e.stopPropagation()}>
             <div className={`flex items-center justify-between p-6 border-b ${
-              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+              isDarkMode ? 'border-gray-700/50 bg-gray-700/30' : 'border-gray-200/50 bg-gray-50/60'
             }`}>
-              <h2 className={`text-2xl font-semibold ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
+              <h2 className={`text-2xl font-bold ${
+                isDarkMode ? 'text-white' : 'text-gray-800'
               }`}>Edit Node</h2>
-              <button onClick={closeModal} className={`p-2 rounded-lg transition-colors ${
-                isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+              <button onClick={closeModal} className={`p-2.5 rounded-xl transition-all duration-200 transform hover:scale-110 ${
+                isDarkMode ? 'hover:bg-gray-600 text-gray-300' : 'hover:bg-gray-200 text-gray-600'
               }`}>
                 <X size={20} />
               </button>
