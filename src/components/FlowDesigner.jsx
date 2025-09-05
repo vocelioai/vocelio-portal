@@ -27,6 +27,7 @@ import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalett
   import { nodeTypes } from '../components/FlowNodes';
   import { railwayFlowAPI } from '../lib/railwayFlowAPI';
   import { vocelioFlowAPI } from '../lib/vocelioFlowAPI';
+  import { contextAPI } from '../lib/contextAPI';
   import FLOW_DESIGNER_CONFIG from '../config/flowDesignerConfig';
   import ExecutionMonitor from '../components/ExecutionMonitor';
   import NodeTemplateBrowser from '../components/NodeTemplateBrowser';
@@ -36,6 +37,10 @@ import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalett
   import FlowCollaboration from '../components/FlowCollaboration';
   import AIFlowOptimizer from '../components/AIFlowOptimizer';
   import AdvancedNodeTypesManager from '../components/AdvancedNodeTypesManager';
+  import contextIntelligence from '../lib/contextIntelligence';
+  import ContextAnalyticsDashboard from '../components/ContextAnalyticsDashboard';
+  import AITemplateGenerator from '../components/AITemplateGenerator';
+  import ContextInheritanceManager from '../components/ContextInheritanceManager';
 
 // Lazy load Phase 3 component to reduce initial bundle size
 const Phase3FlowBuilderEnhancements = React.lazy(() => import('../components/Phase3FlowBuilderEnhancementsLite'));
@@ -69,6 +74,47 @@ const VocelioAIPlatform = () => {
   const [aiOptimizerOpen, setAiOptimizerOpen] = useState(false);
   const [advancedNodesOpen, setAdvancedNodesOpen] = useState(false);
   
+  // Global Prompt State Management
+  const [globalPrompt, setGlobalPrompt] = useState(() => {
+    // Load from localStorage on initialization
+    const savedPrompt = localStorage.getItem('vocelio-global-prompt');
+    return savedPrompt || `You are Alex from Vocelio AI, a specialized lead generation and appointment setting company that works exclusively with businesses looking to automate their customer conversations. You are calling business owners, sales managers, and development professionals to introduce them to our services.
+
+You're calling {{customer_name}} because you came across their company and saw they're doing great work and could benefit from conversational AI automation.`;
+  });
+
+  // Workflow-Specific Context State Management
+  const [workflowContexts, setWorkflowContexts] = useState(() => {
+    // Load from localStorage on initialization
+    const savedContexts = localStorage.getItem('vocelio-workflow-contexts');
+    return savedContexts ? JSON.parse(savedContexts) : {};
+  });
+
+  const [currentWorkflowId, setCurrentWorkflowId] = useState('main-workflow');
+  const [workflowContextModalOpen, setWorkflowContextModalOpen] = useState(false);
+
+  // Context Library State Management
+  const [contextLibraryOpen, setContextLibraryOpen] = useState(false);
+  const [contextTemplates, setContextTemplates] = useState(() => {
+    // Load custom templates from localStorage
+    const savedTemplates = localStorage.getItem('vocelio-context-templates');
+    const customTemplates = savedTemplates ? JSON.parse(savedTemplates) : [];
+    
+    // Initialize with empty array, will be populated after getBuiltInTemplates is defined
+    return customTemplates;
+  });
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+
+  // API Integration & Collaboration State
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [syncStatus, setSyncStatus] = useState('idle'); // idle, syncing, error, success
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [realtimeConnection, setRealtimeConnection] = useState(null);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [conflictResolution, setConflictResolution] = useState(null);
+  
   // Current user for collaboration
   const [currentUser] = useState({
     id: 'current-user',
@@ -78,6 +124,13 @@ const VocelioAIPlatform = () => {
     role: 'admin',
     color: '#3B82F6'
   });
+
+  // 🚀 ADVANCED FEATURES STATE - AI Intelligence & Analytics
+  const [analyticsModalOpen, setAnalyticsModalOpen] = useState(false);
+  const [aiGeneratorModalOpen, setAiGeneratorModalOpen] = useState(false);
+  const [inheritanceManagerOpen, setInheritanceManagerOpen] = useState(false);
+  const [contextUsageData, setContextUsageData] = useState([]);
+  const [performanceMetrics, setPerformanceMetrics] = useState(null);
   
   // Form states
   const [nodeForm, setNodeForm] = useState({
@@ -723,12 +776,675 @@ const VocelioAIPlatform = () => {
     closeModal();
   }, [showNotification]);
 
+  // Global Prompt Management
+  const saveGlobalPrompt = useCallback(async () => {
+    try {
+      setSyncStatus('syncing');
+      
+      // Save to API first
+      const result = await contextAPI.saveGlobalPrompt(globalPrompt);
+      
+      if (result.success) {
+        // Log activity for team collaboration
+        await contextAPI.logActivity('global-prompt-updated', {
+          prompt: globalPrompt.substring(0, 100) + '...',
+          length: globalPrompt.length
+        });
+        
+        setLastSyncTime(new Date().toISOString());
+        setSyncStatus('success');
+        showNotification('Global prompt saved and synced!', 'success');
+      } else {
+        // API failed, but localStorage was already saved as fallback
+        setSyncStatus('error');
+        showNotification('Global prompt saved locally (offline mode)', 'warning');
+      }
+      
+      closeModal();
+    } catch (error) {
+      console.error('Failed to save global prompt:', error);
+      setSyncStatus('error');
+      showNotification('Failed to save global prompt. Please try again.', 'error');
+    }
+  }, [globalPrompt, showNotification]);
+
+  const handleGlobalPromptChange = useCallback((event) => {
+    setGlobalPrompt(event.target.value);
+  }, []);
+
+  // Workflow Context Management Functions
+  const saveWorkflowContexts = useCallback(async () => {
+    try {
+      setSyncStatus('syncing');
+      
+      // Save to API
+      const result = await contextAPI.saveWorkflowContexts(workflowContexts);
+      
+      if (result.success) {
+        // Log activity
+        await contextAPI.logActivity('workflow-contexts-updated', {
+          count: Object.keys(workflowContexts).length,
+          workflows: Object.values(workflowContexts).map(w => ({ id: w.id, name: w.name }))
+        });
+        
+        setLastSyncTime(new Date().toISOString());
+        setSyncStatus('success');
+        showNotification('Workflow contexts saved and synced!', 'success');
+      } else {
+        setSyncStatus('error');
+        showNotification('Workflow contexts saved locally (offline mode)', 'warning');
+      }
+    } catch (error) {
+      console.error('Failed to save workflow contexts:', error);
+      setSyncStatus('error');
+      showNotification('Failed to save workflow contexts. Please try again.', 'error');
+    }
+  }, [workflowContexts, showNotification]);
+
+  const updateWorkflowContext = useCallback(async (workflowId, context) => {
+    // Update local state immediately for responsiveness
+    setWorkflowContexts(prev => ({
+      ...prev,
+      [workflowId]: {
+        ...prev[workflowId],
+        ...context,
+        lastModified: new Date().toISOString()
+      }
+    }));
+
+    // Debounced API save (saves after 2 seconds of no changes)
+    clearTimeout(updateWorkflowContext.timeoutId);
+    updateWorkflowContext.timeoutId = setTimeout(async () => {
+      try {
+        const updatedContext = {
+          ...workflowContexts[workflowId],
+          ...context,
+          lastModified: new Date().toISOString()
+        };
+        
+        await contextAPI.saveWorkflowContext(workflowId, updatedContext);
+        
+        // Log activity for minor updates
+        await contextAPI.logActivity('workflow-context-updated', {
+          workflowId,
+          workflowName: updatedContext.name,
+          changes: Object.keys(context)
+        });
+        
+        setLastSyncTime(new Date().toISOString());
+      } catch (error) {
+        console.error('Failed to sync workflow context:', error);
+      }
+    }, 2000);
+  }, [workflowContexts]);
+
+  const createNewWorkflow = useCallback((workflowName, workflowType = 'general') => {
+    const workflowId = `${workflowType}-${Date.now()}`;
+    const newWorkflow = {
+      id: workflowId,
+      name: workflowName,
+      type: workflowType,
+      context: '',
+      description: '',
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString()
+    };
+    
+    setWorkflowContexts(prev => ({
+      ...prev,
+      [workflowId]: newWorkflow
+    }));
+    
+    setCurrentWorkflowId(workflowId);
+    showNotification(`Workflow "${workflowName}" created successfully!`, 'success');
+    return workflowId;
+  }, [showNotification]);
+
+  const deleteWorkflowContext = useCallback((workflowId) => {
+    setWorkflowContexts(prev => {
+      const newContexts = { ...prev };
+      delete newContexts[workflowId];
+      return newContexts;
+    });
+    
+    if (currentWorkflowId === workflowId) {
+      setCurrentWorkflowId('main-workflow');
+    }
+    
+    showNotification('Workflow context deleted successfully!', 'success');
+  }, [currentWorkflowId, showNotification]);
+
+  const getCurrentWorkflowContext = useCallback(() => {
+    return workflowContexts[currentWorkflowId] || null;
+  }, [workflowContexts, currentWorkflowId]);
+
+  const getCombinedContext = useCallback((workflowId = currentWorkflowId) => {
+    const workflow = workflowContexts[workflowId];
+    const workflowContext = workflow?.context || '';
+    
+    // Combine global and workflow-specific contexts
+    if (workflowContext.trim()) {
+      return `${globalPrompt}\n\n## WORKFLOW-SPECIFIC CONTEXT:\n${workflowContext}`;
+    }
+    return globalPrompt;
+  }, [globalPrompt, workflowContexts, currentWorkflowId]);
+
+  // Built-in Context Templates
+  const getBuiltInTemplates = useCallback(() => {
+    return [
+      // INDUSTRY TEMPLATES
+      {
+        id: 'healthcare-general',
+        name: 'Healthcare Professional',
+        category: 'industry',
+        description: 'HIPAA-compliant, empathetic healthcare communication',
+        tags: ['healthcare', 'medical', 'hipaa', 'empathetic'],
+        context: `You are a healthcare professional dedicated to patient care and well-being. You maintain strict HIPAA compliance and patient confidentiality at all times. 
+
+Key Guidelines:
+- Use compassionate, professional medical terminology
+- Always prioritize patient safety and comfort
+- Respect patient privacy and confidentiality
+- Provide clear, understandable explanations
+- Show empathy and understanding for patient concerns
+- Guide patients through processes step-by-step
+
+Remember: You cannot provide medical diagnoses or treatment advice. Always direct patients to consult with their healthcare provider for medical questions.`,
+        isBuiltIn: true,
+        popularity: 95
+      },
+      {
+        id: 'retail-customer-service',
+        name: 'Retail Customer Service',
+        category: 'industry',
+        description: 'Friendly, helpful retail customer experience',
+        tags: ['retail', 'customer-service', 'friendly', 'sales'],
+        context: `You are a friendly and enthusiastic retail customer service representative focused on creating exceptional shopping experiences.
+
+Key Guidelines:
+- Maintain a warm, welcoming tone
+- Focus on customer satisfaction and problem-solving
+- Highlight product benefits and value
+- Offer alternatives and suggestions
+- Handle complaints with patience and understanding
+- Drive sales through helpful recommendations
+- Create urgency around limited-time offers
+
+Your goal is to turn every interaction into a positive experience that builds customer loyalty and drives sales.`,
+        isBuiltIn: true,
+        popularity: 88
+      },
+      {
+        id: 'finance-professional',
+        name: 'Financial Services',
+        category: 'industry',
+        description: 'Trustworthy, compliant financial communication',
+        tags: ['finance', 'banking', 'compliance', 'trustworthy'],
+        context: `You are a professional financial services representative committed to helping clients achieve their financial goals while maintaining strict regulatory compliance.
+
+Key Guidelines:
+- Use precise, trustworthy language
+- Maintain confidentiality and security protocols
+- Explain complex financial concepts clearly
+- Focus on long-term client relationships
+- Emphasize risk management and responsible investing
+- Always include necessary disclaimers
+- Build trust through transparency and expertise
+
+Remember: You must comply with all financial regulations and cannot provide specific investment advice without proper licensing.`,
+        isBuiltIn: true,
+        popularity: 82
+      },
+      {
+        id: 'saas-b2b',
+        name: 'B2B SaaS',
+        category: 'industry',
+        description: 'Technical, ROI-focused software solutions',
+        tags: ['saas', 'b2b', 'technical', 'roi'],
+        context: `You are a knowledgeable B2B SaaS consultant focused on helping businesses optimize their operations through technology solutions.
+
+Key Guidelines:
+- Emphasize ROI and business value
+- Use technical language appropriately for your audience
+- Focus on scalability and efficiency gains
+- Provide concrete examples and case studies
+- Address integration and implementation concerns
+- Highlight competitive advantages
+- Quantify benefits whenever possible
+
+Your goal is to demonstrate how your solution solves real business problems and drives measurable results.`,
+        isBuiltIn: true,
+        popularity: 90
+      },
+      
+      // ROLE-BASED TEMPLATES
+      {
+        id: 'sales-closer',
+        name: 'Sales Closer',
+        category: 'role',
+        description: 'Persuasive, results-driven sales approach',
+        tags: ['sales', 'closing', 'persuasive', 'results'],
+        context: `You are a results-driven sales professional focused on identifying qualified prospects and closing deals efficiently.
+
+Key Guidelines:
+- Ask qualifying questions to understand needs
+- Present clear value propositions
+- Handle objections confidently with proven responses
+- Create urgency through scarcity and time-sensitive offers
+- Focus on benefits rather than features
+- Use social proof and testimonials
+- Guide prospects toward a clear next step
+- Always ask for the sale
+
+Your primary goal is to move qualified prospects through the sales funnel and close deals.`,
+        isBuiltIn: true,
+        popularity: 93
+      },
+      {
+        id: 'technical-support',
+        name: 'Technical Support Specialist',
+        category: 'role',
+        description: 'Patient, solution-oriented technical assistance',
+        tags: ['support', 'technical', 'problem-solving', 'patient'],
+        context: `You are a patient and knowledgeable technical support specialist dedicated to solving customer problems efficiently.
+
+Key Guidelines:
+- Listen actively to understand the exact problem
+- Ask clarifying questions to diagnose issues
+- Provide step-by-step troubleshooting instructions
+- Use simple language for complex technical concepts
+- Show empathy for customer frustration
+- Offer multiple solution options when possible
+- Follow up to ensure problems are resolved
+- Escalate complex issues when appropriate
+
+Your goal is to resolve technical issues quickly while providing an excellent customer experience.`,
+        isBuiltIn: true,
+        popularity: 87
+      },
+      {
+        id: 'appointment-setter',
+        name: 'Appointment Setter',
+        category: 'role',
+        description: 'Efficient, professional scheduling specialist',
+        tags: ['scheduling', 'appointments', 'efficient', 'professional'],
+        context: `You are a professional appointment setter focused on efficiently scheduling qualified prospects for meaningful business discussions.
+
+Key Guidelines:
+- Quickly identify decision-makers and qualify prospects
+- Emphasize the value of the meeting, not the product
+- Offer multiple time options for flexibility
+- Confirm availability and contact information
+- Send immediate calendar confirmations
+- Handle scheduling objections professionally
+- Respect prospects' time constraints
+- Follow up on missed appointments appropriately
+
+Your goal is to book high-quality appointments that convert to meaningful business opportunities.`,
+        isBuiltIn: true,
+        popularity: 85
+      },
+      
+      // TONE & PERSONALITY TEMPLATES
+      {
+        id: 'friendly-casual',
+        name: 'Friendly & Casual',
+        category: 'personality',
+        description: 'Warm, approachable, conversational tone',
+        tags: ['friendly', 'casual', 'warm', 'approachable'],
+        context: `You communicate with a warm, friendly, and approachable personality that makes people feel comfortable and valued.
+
+Key Guidelines:
+- Use conversational, easy-going language
+- Show genuine interest in people
+- Be helpful without being pushy
+- Use humor appropriately to lighten the mood
+- Make complex topics accessible and easy to understand
+- Create a welcoming, inclusive atmosphere
+- Build rapport through shared experiences
+- Maintain professionalism while being personable
+
+Your goal is to create genuine connections that lead to positive outcomes for everyone involved.`,
+        isBuiltIn: true,
+        popularity: 78
+      },
+      {
+        id: 'professional-authoritative',
+        name: 'Professional & Authoritative',
+        category: 'personality',
+        description: 'Confident, expert, credible communication',
+        tags: ['professional', 'authoritative', 'expert', 'credible'],
+        context: `You communicate with confidence, expertise, and authority while maintaining professionalism and respect.
+
+Key Guidelines:
+- Demonstrate deep knowledge and expertise
+- Use precise, professional language
+- Present information clearly and authoritatively
+- Back up statements with facts and evidence
+- Maintain composure in challenging situations
+- Command respect through competence
+- Set clear expectations and boundaries
+- Lead conversations toward productive outcomes
+
+Your goal is to establish credibility and guide interactions with confident expertise.`,
+        isBuiltIn: true,
+        popularity: 84
+      }
+    ];
+  }, []);
+
+  // Initialize context templates with built-in templates
+  useEffect(() => {
+    const savedTemplates = localStorage.getItem('vocelio-context-templates');
+    const customTemplates = savedTemplates ? JSON.parse(savedTemplates) : [];
+    setContextTemplates([...getBuiltInTemplates(), ...customTemplates]);
+  }, [getBuiltInTemplates]);
+
+  // Context Library Management Functions
+  const saveCustomTemplate = useCallback((template) => {
+    const customTemplate = {
+      ...template,
+      id: `custom-${Date.now()}`,
+      isBuiltIn: false,
+      createdAt: new Date().toISOString()
+    };
+    
+    setContextTemplates(prev => {
+      const newTemplates = [...prev, customTemplate];
+      // Save only custom templates to localStorage
+      const customTemplates = newTemplates.filter(t => !t.isBuiltIn);
+      localStorage.setItem('vocelio-context-templates', JSON.stringify(customTemplates));
+      return newTemplates;
+    });
+    
+    showNotification(`Template "${template.name}" saved successfully!`, 'success');
+    return customTemplate.id;
+  }, [showNotification]);
+
+  const applyTemplateToWorkflow = useCallback((templateId, workflowId) => {
+    const template = contextTemplates.find(t => t.id === templateId);
+    if (template && workflowId) {
+      updateWorkflowContext(workflowId, { 
+        context: template.context,
+        templateUsed: template.name
+      });
+      showNotification(`Template "${template.name}" applied to workflow!`, 'success');
+    }
+  }, [contextTemplates, updateWorkflowContext, showNotification]);
+
+  const getFilteredTemplates = useCallback(() => {
+    return contextTemplates.filter(template => {
+      const matchesSearch = !templateSearchQuery || 
+        template.name.toLowerCase().includes(templateSearchQuery.toLowerCase()) ||
+        template.description.toLowerCase().includes(templateSearchQuery.toLowerCase()) ||
+        template.tags?.some(tag => tag.toLowerCase().includes(templateSearchQuery.toLowerCase()));
+      
+      const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [contextTemplates, templateSearchQuery, selectedCategory]);
+
+  // 🚀 ADVANCED FEATURES HANDLERS - AI Intelligence & Analytics
+  
+  // Analytics Dashboard Handler
+  const handleOpenAnalytics = useCallback(() => {
+    // Simulate generating usage data
+    const mockUsageData = Object.entries(workflowContexts).map(([id, context]) => ({
+      context_id: id,
+      context_name: context.name || 'Unnamed Workflow',
+      usage_count: Math.floor(Math.random() * 500) + 50,
+      conversion_rate: Math.random() * 0.4 + 0.6, // 60-100%
+      last_used: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+    }));
+    
+    setContextUsageData(mockUsageData);
+    setAnalyticsModalOpen(true);
+  }, [workflowContexts]);
+
+  // AI Template Generator Handler
+  const handleGenerateTemplate = useCallback(() => {
+    setAiGeneratorModalOpen(true);
+  }, []);
+
+  // Handle AI-generated template
+  const handleAITemplateGenerated = useCallback(async (generatedTemplate) => {
+    try {
+      // Add to context templates
+      const newTemplates = [...contextTemplates, generatedTemplate];
+      setContextTemplates(newTemplates);
+      
+      // Save to localStorage
+      const customTemplates = newTemplates.filter(t => !t.isBuiltIn);
+      localStorage.setItem('vocelio-context-templates', JSON.stringify(customTemplates));
+      
+      // Log AI generation activity
+      await contextAPI.logActivity('ai-template-generated', {
+        templateName: generatedTemplate.name,
+        industry: generatedTemplate.generationParams?.industry,
+        role: generatedTemplate.generationParams?.role,
+        qualityScore: generatedTemplate.quality_score
+      });
+      
+      showNotification(`🤖 AI generated "${generatedTemplate.name}" template!`, 'success');
+      setLastSyncTime(new Date().toISOString());
+    } catch (error) {
+      console.error('Failed to save AI-generated template:', error);
+      showNotification('Failed to save AI-generated template', 'error');
+    }
+  }, [contextTemplates, showNotification]);
+
+  // Context Inheritance Manager Handler
+  const handleOpenInheritanceManager = useCallback(() => {
+    setInheritanceManagerOpen(true);
+  }, []);
+
+  // Context Optimization Handler
+  const handleOptimizeContext = useCallback(async (contextId, optimizationGoals) => {
+    try {
+      setSyncStatus('syncing');
+      
+      const contextToOptimize = workflowContexts[contextId];
+      if (!contextToOptimize?.context) {
+        showNotification('No context found to optimize', 'warning');
+        return;
+      }
+
+      // Use AI to optimize the context
+      const optimization = await contextIntelligence.optimizeExistingContext(
+        contextToOptimize.context,
+        optimizationGoals || ['Improve clarity', 'Enhance conversion rate', 'Better user experience']
+      );
+
+      if (optimization.success) {
+        // Update the context with the optimized version
+        await updateWorkflowContext(contextId, {
+          context: optimization.optimized_context,
+          optimizationHistory: [
+            ...(contextToOptimize.optimizationHistory || []),
+            {
+              timestamp: new Date().toISOString(),
+              originalLength: contextToOptimize.context.length,
+              optimizedLength: optimization.optimized_context.length,
+              improvements: optimization.improvements_made,
+              goals: optimizationGoals
+            }
+          ]
+        });
+
+        await contextAPI.logActivity('context-ai-optimized', {
+          contextId,
+          contextName: contextToOptimize.name,
+          improvements: optimization.improvements_made,
+          goals: optimizationGoals
+        });
+
+        setSyncStatus('success');
+        showNotification(`🚀 Context optimized with AI! ${optimization.improvements_made.length} improvements made.`, 'success');
+      } else {
+        setSyncStatus('error');
+        showNotification('AI optimization failed. Please try again.', 'error');
+      }
+    } catch (error) {
+      console.error('Context optimization failed:', error);
+      setSyncStatus('error');
+      showNotification('Failed to optimize context. Please check your connection.', 'error');
+    }
+  }, [workflowContexts, updateWorkflowContext, showNotification]);
+
+  // Performance Analytics Handler
+  const handleAnalyzePerformance = useCallback(() => {
+    if (contextIntelligence && contextUsageData.length > 0) {
+      const analytics = contextIntelligence.analyzeContextPerformance(
+        workflowContexts,
+        contextUsageData
+      );
+      
+      setPerformanceMetrics(analytics);
+      showNotification('📊 Performance analysis complete!', 'success');
+      return analytics;
+    }
+    return null;
+  }, [workflowContexts, contextUsageData, showNotification]);
+
+  // Real-time Collaboration Setup
+  useEffect(() => {
+    // Setup real-time connection for team collaboration
+    const ws = contextAPI.setupRealtimeSync({
+      onConnect: () => {
+        setRealtimeConnection(ws);
+        showNotification('🔗 Connected to team workspace', 'success');
+      },
+      onDisconnect: () => {
+        setRealtimeConnection(null);
+        showNotification('🔌 Disconnected from team workspace', 'warning');
+      },
+      onGlobalPromptUpdate: (data) => {
+        setGlobalPrompt(data.prompt);
+        showNotification(`📝 Global prompt updated by ${data.updatedBy}`, 'info');
+      },
+      onWorkflowContextUpdate: (data) => {
+        setWorkflowContexts(prev => ({
+          ...prev,
+          [data.workflowId]: data.context
+        }));
+        showNotification(`🎭 Workflow "${data.context.name}" updated by ${data.updatedBy}`, 'info');
+      },
+      onTemplateCreated: (data) => {
+        setContextTemplates(prev => [...prev, data.template]);
+        showNotification(`📚 New template "${data.template.name}" shared by ${data.createdBy}`, 'info');
+      },
+      onUserOnline: (data) => {
+        setTeamMembers(prev => prev.map(member => 
+          member.id === data.userId ? { ...member, isOnline: true, lastSeen: new Date() } : member
+        ));
+      },
+      onUserOffline: (data) => {
+        setTeamMembers(prev => prev.map(member => 
+          member.id === data.userId ? { ...member, isOnline: false, lastSeen: new Date() } : member
+        ));
+      }
+    });
+
+    // Load team members
+    contextAPI.getTeamMembers().then(result => {
+      if (result.success) {
+        setTeamMembers(result.data.members || []);
+      }
+    });
+
+    // Monitor online/offline status
+    const handleOnline = () => {
+      setIsOnline(true);
+      showNotification('🌐 Back online - syncing data...', 'success');
+      // Trigger sync when coming back online
+      syncAllData();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      showNotification('📴 Working offline - changes will sync when reconnected', 'warning');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      ws?.close();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // Sync all data with API
+  const syncAllData = useCallback(async () => {
+    if (!isOnline) return;
+    
+    try {
+      setSyncStatus('syncing');
+      
+      // Load latest data from API
+      const [globalPromptResult, workflowContextsResult, templatesResult] = await Promise.all([
+        contextAPI.getGlobalPrompt(),
+        contextAPI.getWorkflowContexts(),
+        contextAPI.getTemplateLibrary()
+      ]);
+
+      // Update state with latest data
+      if (globalPromptResult.success && !globalPromptResult.isOffline) {
+        setGlobalPrompt(globalPromptResult.data.prompt);
+      }
+      
+      if (workflowContextsResult.success && !workflowContextsResult.isOffline) {
+        setWorkflowContexts(workflowContextsResult.data.contexts || {});
+      }
+      
+      if (templatesResult.success && !templatesResult.isOffline) {
+        const customTemplates = templatesResult.data.templates.filter(t => !t.isBuiltIn);
+        setContextTemplates(prev => [...getBuiltInTemplates(), ...customTemplates]);
+      }
+
+      setLastSyncTime(new Date().toISOString());
+      setSyncStatus('success');
+    } catch (error) {
+      console.error('Sync failed:', error);
+      setSyncStatus('error');
+    }
+  }, [isOnline, getBuiltInTemplates]);
+
+  // Test API connection
+  const testAPIConnection = useCallback(async () => {
+    try {
+      setSyncStatus('syncing');
+      const result = await contextAPI.testConnection();
+      
+      if (result.success) {
+        setSyncStatus('success');
+        showNotification('✅ API connection successful!', 'success');
+        return result.connectionInfo;
+      } else {
+        setSyncStatus('error');
+        showNotification('❌ API connection failed: ' + result.error, 'error');
+        return null;
+      }
+    } catch (error) {
+      setSyncStatus('error');
+      showNotification('❌ API connection error: ' + error.message, 'error');
+      return null;
+    }
+  }, [showNotification]);
+
   // Sidebar items
   const sidebarItems = [
-    { icon: '�', label: 'Node Library', action: () => setTemplateBrowserOpen(true) },
+    { icon: '📋', label: 'Node Library', action: () => setTemplateBrowserOpen(true) },
     { icon: '🗂️', label: 'Flow Templates', action: () => setFlowTemplateBrowserOpen(true) },
     { icon: '⚙️', label: 'Manage Templates', action: () => setFlowTemplateManagerOpen(true) },
     { icon: '🌍', label: 'Global Prompt', action: () => showModal('globalPrompt') },
+    { icon: '🎭', label: 'Workflow Contexts', action: () => setWorkflowContextModalOpen(true) },
+    { icon: '📚', label: 'Context Library', action: () => setContextLibraryOpen(true) },
+    { icon: '👥', label: 'Team Collaboration', action: () => showModal('teamCollaboration') },
+    { icon: '🔄', label: 'Sync Status', action: () => testAPIConnection() },
     { icon: '🎯', label: 'Feature Flags', action: () => {} },
     { icon: '🧪', label: 'Test Pathway', action: () => showModal('testPathway') },
     { icon: '📞', label: 'Send Call', action: () => showModal('sendCall') },
@@ -737,7 +1453,11 @@ const VocelioAIPlatform = () => {
     { icon: '📊', label: 'Flow Analytics', action: () => setAnalyticsOpen(true) },
     { icon: '👥', label: 'Collaborate', action: () => setCollaborationOpen(true) },
     { icon: '🧠', label: 'AI Optimizer', action: () => setAiOptimizerOpen(true) },
-    { icon: '⚡', label: 'Advanced Nodes', action: () => setAdvancedNodesOpen(true) }
+    { icon: '⚡', label: 'Advanced Nodes', action: () => setAdvancedNodesOpen(true) },
+    { icon: '📈', label: 'Context Analytics', action: handleOpenAnalytics },
+    { icon: '🤖', label: 'AI Template Gen', action: handleGenerateTemplate },
+    { icon: '🧬', label: 'Context Inheritance', action: handleOpenInheritanceManager },
+    { icon: '🎯', label: 'AI Optimize Context', action: () => handleOptimizeContext(currentWorkflowId) }
   ];
 
   return (
@@ -1498,26 +2218,82 @@ const VocelioAIPlatform = () => {
             </div>
 
             <div className="p-6">
-              <h3 className={`text-lg font-semibold mb-4 ${
-                isDarkMode ? 'text-white' : 'text-gray-900'
-              }`}>## **AGENT IDENTITY & ROLE**</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`text-lg font-semibold ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>## **AGENT IDENTITY & ROLE**</h3>
+                <div className="flex items-center gap-3">
+                  {/* Sync Status Indicator */}
+                  <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
+                    syncStatus === 'syncing' ? 'bg-blue-100 text-blue-800' :
+                    syncStatus === 'success' ? 'bg-green-100 text-green-800' :
+                    syncStatus === 'error' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {syncStatus === 'syncing' && <span className="animate-spin">⟳</span>}
+                    {syncStatus === 'success' && <span>✓</span>}
+                    {syncStatus === 'error' && <span>⚠</span>}
+                    {syncStatus === 'idle' && <span>○</span>}
+                    <span className="text-xs">
+                      {syncStatus === 'syncing' ? 'Syncing...' :
+                       syncStatus === 'success' ? 'Synced' :
+                       syncStatus === 'error' ? 'Offline' : 'Local'}
+                    </span>
+                    {lastSyncTime && syncStatus === 'success' && (
+                      <span className="text-xs opacity-75">
+                        {new Date(lastSyncTime).toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className={`text-sm px-3 py-1 rounded-full ${
+                    globalPrompt.length > 2000 
+                      ? 'bg-red-100 text-red-800' 
+                      : globalPrompt.length > 1500 
+                        ? 'bg-yellow-100 text-yellow-800' 
+                        : 'bg-green-100 text-green-800'
+                  }`}>
+                    {globalPrompt.length} characters
+                  </div>
+                </div>
+              </div>
+              
+              <p className={`text-sm mb-4 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-600'
+              }`}>
+                This global context defines your AI agent's identity and will be included in all conversations across all workflows. 
+                You can reference variables using {`{{variable_name}}`} notation.
+              </p>
+              
               <textarea
-                className={`w-full h-64 p-4 border-2 rounded-lg focus:border-blue-500 outline-none resize-vertical ${
+                value={globalPrompt}
+                onChange={handleGlobalPromptChange}
+                className={`w-full h-64 p-4 border-2 rounded-lg focus:border-blue-500 outline-none resize-vertical transition-colors ${
                   isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-white' 
-                    : 'bg-white border-gray-200 text-gray-900'
+                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
                 }`}
-                defaultValue={`You are Alex from Vocelio AI, a specialized lead generation and appointment setting company that works exclusively with businesses looking to automate their customer conversations. You are calling business owners, sales managers, and development professionals to introduce them to our services.
-
-You're calling {{customer_name}} because you came across their company and saw they're doing great work and could benefit from conversational AI automation.`}
+                placeholder="Enter the global context and identity for your AI agent..."
               />
+              
+              {globalPrompt.length > 2000 && (
+                <p className="text-red-600 text-sm mt-2">
+                  ⚠️ Warning: Very long prompts may affect AI response quality. Consider using shorter, more focused descriptions.
+                </p>
+              )}
 
               <div className="flex gap-3 justify-end mt-6">
-                <button className={`px-6 py-2 border rounded-lg transition-colors ${
-                  isDarkMode 
-                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                }`}>
+                <button 
+                  onClick={() => {
+                    // Compress prompt feature - placeholder for future AI compression
+                    showNotification('Prompt compression feature coming soon!', 'info');
+                  }}
+                  className={`px-6 py-2 border rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
                   Compress Prompt
                 </button>
                 <button
@@ -1531,10 +2307,15 @@ You're calling {{customer_name}} because you came across their company and saw t
                   Cancel
                 </button>
                 <button
-                  onClick={() => { showNotification('Global prompt saved!', 'success'); closeModal(); }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={saveGlobalPrompt}
+                  disabled={!globalPrompt.trim()}
+                  className={`px-6 py-2 rounded-lg transition-colors ${
+                    globalPrompt.trim()
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
                 >
-                  Save
+                  Save Global Prompt
                 </button>
               </div>
             </div>
@@ -2690,6 +3471,41 @@ You're calling {{customer_name}} because you came across their company and saw t
         </div>
       )}
 
+      {/* 🚀 ADVANCED FEATURES MODALS - AI Intelligence & Analytics */}
+      
+      {/* Context Analytics Dashboard */}
+      <ContextAnalyticsDashboard
+        isVisible={analyticsModalOpen}
+        onClose={() => setAnalyticsModalOpen(false)}
+        contexts={workflowContexts}
+        usageData={contextUsageData}
+        onOptimizeContext={handleOptimizeContext}
+        onGenerateTemplate={handleGenerateTemplate}
+      />
+
+      {/* AI Template Generator */}
+      <AITemplateGenerator
+        isVisible={aiGeneratorModalOpen}
+        onClose={() => setAiGeneratorModalOpen(false)}
+        onTemplateGenerated={handleAITemplateGenerated}
+        contextIntelligence={contextIntelligence}
+      />
+
+      {/* Context Inheritance Manager */}
+      <ContextInheritanceManager
+        isVisible={inheritanceManagerOpen}
+        onClose={() => setInheritanceManagerOpen(false)}
+        globalPrompt={globalPrompt}
+        workflowContexts={workflowContexts}
+        selectedWorkflow={currentWorkflowId}
+        onUpdateContext={(mergedContext) => {
+          updateWorkflowContext(currentWorkflowId, { context: mergedContext });
+          showNotification('🧬 Context inheritance applied successfully!', 'success');
+          setInheritanceManagerOpen(false);
+        }}
+        contextIntelligence={contextIntelligence}
+      />
+
       {/* Node Template Browser */}
       <NodeTemplateBrowser
         isDarkMode={isDarkMode}
@@ -2778,6 +3594,792 @@ You're calling {{customer_name}} because you came across their company and saw t
                 showNotification(`Template "${template.name}" updated successfully!`, 'success');
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Workflow Context Management Modal */}
+      {workflowContextModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
+          if (e.target === e.currentTarget) setWorkflowContextModalOpen(false);
+        }}>
+          <div className={`rounded-xl shadow-2xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`} onClick={(e) => e.stopPropagation()}>
+            <div className={`flex items-center justify-between p-6 border-b ${
+              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
+              <h2 className={`text-2xl font-semibold ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>🎭 Workflow Context Management</h2>
+              <button 
+                onClick={() => setWorkflowContextModalOpen(false)} 
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+                }`}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Current Workflows */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-lg font-semibold ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Current Workflows</h3>
+                    <button
+                      onClick={() => {
+                        const name = prompt('Enter workflow name:');
+                        if (name) {
+                          const type = prompt('Enter workflow type (sales/support/technical/general):', 'general');
+                          createNewWorkflow(name, type || 'general');
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        isDarkMode 
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      + New Workflow
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {Object.entries(workflowContexts).map(([workflowId, workflow]) => (
+                      <div
+                        key={workflowId}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          currentWorkflowId === workflowId
+                            ? isDarkMode 
+                              ? 'border-blue-500 bg-blue-900/20' 
+                              : 'border-blue-500 bg-blue-50'
+                            : isDarkMode 
+                              ? 'border-gray-600 bg-gray-700 hover:border-gray-500' 
+                              : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                        onClick={() => setCurrentWorkflowId(workflowId)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className={`font-medium ${
+                              isDarkMode ? 'text-white' : 'text-gray-900'
+                            }`}>{workflow.name}</h4>
+                            <p className={`text-sm ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>Type: {workflow.type}</p>
+                            {workflow.context && (
+                              <p className={`text-xs mt-1 ${
+                                isDarkMode ? 'text-gray-500' : 'text-gray-500'
+                              }`}>
+                                {workflow.context.length} characters
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {workflow.isActive && (
+                              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete workflow "${workflow.name}"?`)) {
+                                  deleteWorkflowContext(workflowId);
+                                }
+                              }}
+                              className={`p-1 rounded hover:bg-red-100 text-red-500 transition-colors`}
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {Object.keys(workflowContexts).length === 0 && (
+                      <div className={`text-center py-8 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        <p>No workflows created yet.</p>
+                        <p className="text-sm mt-2">Click "New Workflow" to get started!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Context Editor */}
+                <div>
+                  <h3 className={`text-lg font-semibold mb-4 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {getCurrentWorkflowContext() ? `Edit: ${getCurrentWorkflowContext().name}` : 'Select a Workflow'}
+                  </h3>
+
+                  {getCurrentWorkflowContext() ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Workflow Description</label>
+                        <input
+                          type="text"
+                          value={getCurrentWorkflowContext().description || ''}
+                          onChange={(e) => updateWorkflowContext(currentWorkflowId, { description: e.target.value })}
+                          placeholder="Describe this workflow's purpose..."
+                          className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                            isDarkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                              : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+                          }`}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Workflow-Specific Context</label>
+                        <textarea
+                          value={getCurrentWorkflowContext().context || ''}
+                          onChange={(e) => updateWorkflowContext(currentWorkflowId, { context: e.target.value })}
+                          placeholder="Enter context specific to this workflow... This will be combined with your global prompt."
+                          className={`w-full h-64 p-4 border-2 rounded-lg focus:border-blue-500 outline-none resize-vertical ${
+                            isDarkMode 
+                              ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                              : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+                          }`}
+                        />
+                        <p className={`text-sm mt-2 ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          {(getCurrentWorkflowContext().context || '').length} characters | This context will be added to your global prompt when this workflow runs.
+                        </p>
+                      </div>
+
+                      {/* Context Preview */}
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Combined Context Preview</label>
+                        <div className={`p-4 border-2 rounded-lg h-32 overflow-y-auto text-sm ${
+                          isDarkMode 
+                            ? 'bg-gray-900 border-gray-600 text-gray-300' 
+                            : 'bg-gray-50 border-gray-200 text-gray-700'
+                        }`}>
+                          <pre className="whitespace-pre-wrap">{getCombinedContext(currentWorkflowId)}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`text-center py-16 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      <p>Select a workflow from the left to edit its context</p>
+                      <p className="text-sm mt-2">or create a new workflow to get started</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6 pt-6 border-t">
+                <button
+                  onClick={() => setWorkflowContextModalOpen(false)}
+                  className={`px-6 py-2 border rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    saveWorkflowContexts();
+                    setWorkflowContextModalOpen(false);
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Save All Contexts
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Context Library Modal */}
+      {contextLibraryOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
+          if (e.target === e.currentTarget) setContextLibraryOpen(false);
+        }}>
+          <div className={`rounded-xl shadow-2xl w-full max-w-7xl mx-4 max-h-[90vh] overflow-y-auto ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`} onClick={(e) => e.stopPropagation()}>
+            <div className={`flex items-center justify-between p-6 border-b ${
+              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
+              <h2 className={`text-2xl font-semibold ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>📚 Context Library</h2>
+              <button 
+                onClick={() => setContextLibraryOpen(false)} 
+                className={`p-2 rounded-lg transition-colors ${
+                  isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+                }`}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Search and Filter */}
+              <div className="flex flex-col lg:flex-row gap-4 mb-6">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search templates by name, description, or tags..."
+                    value={templateSearchQuery}
+                    onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                    className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                        : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+                    }`}
+                  />
+                </div>
+                <div>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className={`p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                      isDarkMode 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-200 text-gray-900'
+                    }`}
+                  >
+                    <option value="all">All Categories</option>
+                    <option value="industry">Industry Templates</option>
+                    <option value="role">Role-Based Templates</option>
+                    <option value="personality">Personality Templates</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Template Library */}
+                <div>
+                  <h3 className={`text-lg font-semibold mb-4 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>Available Templates ({getFilteredTemplates().length})</h3>
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {getFilteredTemplates().map((template) => (
+                      <div
+                        key={template.id}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          selectedTemplate?.id === template.id
+                            ? isDarkMode 
+                              ? 'border-blue-500 bg-blue-900/20' 
+                              : 'border-blue-500 bg-blue-50'
+                            : isDarkMode 
+                              ? 'border-gray-600 bg-gray-700 hover:border-gray-500' 
+                              : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
+                        onClick={() => setSelectedTemplate(template)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className={`font-medium ${
+                                isDarkMode ? 'text-white' : 'text-gray-900'
+                              }`}>{template.name}</h4>
+                              {template.isBuiltIn && (
+                                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                                  Built-in
+                                </span>
+                              )}
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                template.category === 'industry' ? 'bg-blue-100 text-blue-700' :
+                                template.category === 'role' ? 'bg-purple-100 text-purple-700' :
+                                'bg-orange-100 text-orange-700'
+                              }`}>
+                                {template.category}
+                              </span>
+                            </div>
+                            <p className={`text-sm mb-2 ${
+                              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>{template.description}</p>
+                            {template.tags && (
+                              <div className="flex flex-wrap gap-1">
+                                {template.tags.slice(0, 3).map(tag => (
+                                  <span key={tag} className={`px-2 py-1 text-xs rounded ${
+                                    isDarkMode ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-600'
+                                  }`}>
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {template.popularity && (
+                              <div className="mt-2 text-xs text-green-600">
+                                ⭐ {template.popularity}% popularity
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {getFilteredTemplates().length === 0 && (
+                      <div className={`text-center py-8 ${
+                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                      }`}>
+                        <p>No templates found matching your search.</p>
+                        <p className="text-sm mt-2">Try adjusting your search or category filter.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Template Preview & Actions */}
+                <div>
+                  <h3 className={`text-lg font-semibold mb-4 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    {selectedTemplate ? `Preview: ${selectedTemplate.name}` : 'Select a Template'}
+                  </h3>
+
+                  {selectedTemplate ? (
+                    <div className="space-y-4">
+                      {/* Template Details */}
+                      <div className={`p-4 rounded-lg border ${
+                        isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
+                      }`}>
+                        <h4 className={`font-medium mb-2 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Template Information</h4>
+                        <p className={`text-sm mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          <strong>Category:</strong> {selectedTemplate.category}
+                        </p>
+                        <p className={`text-sm mb-2 ${
+                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                        }`}>
+                          <strong>Description:</strong> {selectedTemplate.description}
+                        </p>
+                        {selectedTemplate.tags && (
+                          <p className={`text-sm ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            <strong>Tags:</strong> {selectedTemplate.tags.join(', ')}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Context Preview */}
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Context Content</label>
+                        <div className={`p-4 border-2 rounded-lg h-64 overflow-y-auto text-sm ${
+                          isDarkMode 
+                            ? 'bg-gray-900 border-gray-600 text-gray-300' 
+                            : 'bg-gray-50 border-gray-200 text-gray-700'
+                        }`}>
+                          <pre className="whitespace-pre-wrap">{selectedTemplate.context}</pre>
+                        </div>
+                        <p className={`text-xs mt-2 ${
+                          isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                        }`}>
+                          {selectedTemplate.context.length} characters
+                        </p>
+                      </div>
+
+                      {/* Apply to Workflow */}
+                      <div>
+                        <label className={`block text-sm font-medium mb-2 ${
+                          isDarkMode ? 'text-white' : 'text-gray-900'
+                        }`}>Apply to Workflow</label>
+                        <div className="flex gap-2">
+                          <select
+                            className={`flex-1 p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                              isDarkMode 
+                                ? 'bg-gray-700 border-gray-600 text-white' 
+                                : 'bg-white border-gray-200 text-gray-900'
+                            }`}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                applyTemplateToWorkflow(selectedTemplate.id, e.target.value);
+                                e.target.value = ''; // Reset selection
+                              }
+                            }}
+                          >
+                            <option value="">Select a workflow...</option>
+                            {Object.entries(workflowContexts).map(([id, workflow]) => (
+                              <option key={id} value={id}>{workflow.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => {
+                              const workflowName = prompt('Enter new workflow name:');
+                              if (workflowName) {
+                                const newWorkflowId = createNewWorkflow(workflowName, selectedTemplate.category);
+                                applyTemplateToWorkflow(selectedTemplate.id, newWorkflowId);
+                              }
+                            }}
+                            className={`px-4 py-3 rounded-lg transition-colors whitespace-nowrap ${
+                              isDarkMode 
+                                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
+                          >
+                            Create New
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`text-center py-16 ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
+                      <p>Select a template from the left to preview its content</p>
+                      <p className="text-sm mt-2">and apply it to your workflows</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6 pt-6 border-t">
+                <button
+                  onClick={() => {
+                    // Future: Open template creation modal
+                    showNotification('Custom template creation coming soon!', 'info');
+                  }}
+                  className={`px-6 py-2 border rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Create Custom
+                </button>
+                <button
+                  onClick={() => setContextLibraryOpen(false)}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Close Library
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Team Collaboration Modal */}
+      {activeModal === 'teamCollaboration' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
+          if (e.target === e.currentTarget) closeModal();
+        }}>
+          <div className={`rounded-xl shadow-2xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto ${
+            isDarkMode ? 'bg-gray-800' : 'bg-white'
+          }`} onClick={(e) => e.stopPropagation()}>
+            <div className={`flex items-center justify-between p-6 border-b ${
+              isDarkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
+              <h2 className={`text-2xl font-semibold ${
+                isDarkMode ? 'text-white' : 'text-gray-900'
+              }`}>👥 Team Collaboration</h2>
+              <button onClick={closeModal} className={`p-2 rounded-lg transition-colors ${
+                isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+              }`}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Connection Status */}
+                <div>
+                  <h3 className={`text-lg font-semibold mb-4 ${
+                    isDarkMode ? 'text-white' : 'text-gray-900'
+                  }`}>Connection Status</h3>
+                  
+                  <div className="space-y-4">
+                    {/* API Status */}
+                    <div className={`p-4 rounded-lg border ${
+                      isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          API Connection
+                        </span>
+                        <div className={`flex items-center gap-2 px-2 py-1 rounded text-sm ${
+                          isOnline && syncStatus === 'success' ? 'bg-green-100 text-green-800' :
+                          syncStatus === 'error' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          <span className={`w-2 h-2 rounded-full ${
+                            isOnline && syncStatus === 'success' ? 'bg-green-500' :
+                            syncStatus === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                          }`}></span>
+                          {isOnline && syncStatus === 'success' ? 'Connected' :
+                           syncStatus === 'error' ? 'Disconnected' : 'Connecting...'}
+                        </div>
+                      </div>
+                      {lastSyncTime && (
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Last sync: {new Date(lastSyncTime).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Real-time Status */}
+                    <div className={`p-4 rounded-lg border ${
+                      isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
+                    }`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                          Real-time Sync
+                        </span>
+                        <div className={`flex items-center gap-2 px-2 py-1 rounded text-sm ${
+                          realtimeConnection ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          <span className={`w-2 h-2 rounded-full ${
+                            realtimeConnection ? 'bg-green-500' : 'bg-red-500'
+                          }`}></span>
+                          {realtimeConnection ? 'Active' : 'Disconnected'}
+                        </div>
+                      </div>
+                      <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {realtimeConnection ? 'Receiving live updates from team' : 'Working in offline mode'}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={testAPIConnection}
+                        className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                          isDarkMode 
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        Test Connection
+                      </button>
+                      <button
+                        onClick={syncAllData}
+                        disabled={!isOnline}
+                        className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                          !isOnline 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : isDarkMode 
+                              ? 'bg-green-600 hover:bg-green-700 text-white' 
+                              : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                      >
+                        Sync Now
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team Members */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className={`text-lg font-semibold ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Team Members ({teamMembers.length})</h3>
+                    <button
+                      onClick={() => {
+                        const email = prompt('Enter email address to invite:');
+                        if (email) {
+                          contextAPI.inviteTeamMember(email).then(result => {
+                            if (result.success) {
+                              showNotification(`Invitation sent to ${email}!`, 'success');
+                            } else {
+                              showNotification('Failed to send invitation', 'error');
+                            }
+                          });
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg transition-colors ${
+                        isDarkMode 
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                    >
+                      + Invite Member
+                    </button>
+                  </div>
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {teamMembers.length > 0 ? teamMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className={`p-4 rounded-lg border ${
+                          isDarkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-200 bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-medium ${
+                              member.isOnline ? 'bg-green-500' : 'bg-gray-400'
+                            }`}>
+                              {member.avatar || member.name?.charAt(0)?.toUpperCase() || '?'}
+                            </div>
+                            <div>
+                              <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                                {member.name || 'Unknown User'}
+                              </h4>
+                              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                {member.email || 'No email'}
+                              </p>
+                              {member.role && (
+                                <span className={`text-xs px-2 py-1 rounded ${
+                                  member.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {member.role}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className={`flex items-center gap-2 text-sm ${
+                              member.isOnline ? 'text-green-600' : isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                            }`}>
+                              <span className={`w-2 h-2 rounded-full ${
+                                member.isOnline ? 'bg-green-500' : 'bg-gray-400'
+                              }`}></span>
+                              {member.isOnline ? 'Online' : 'Offline'}
+                            </div>
+                            {member.lastSeen && !member.isOnline && (
+                              <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                                Last seen: {new Date(member.lastSeen).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <p>No team members yet.</p>
+                        <p className="text-sm mt-2">Invite team members to collaborate on contexts!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-6 pt-6 border-t">
+                <h3 className={`text-lg font-semibold mb-4 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>Quick Actions</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <button
+                    onClick={() => {
+                      contextAPI.exportAllData().then(data => {
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `vocelio-contexts-${new Date().toISOString().split('T')[0]}.json`;
+                        a.click();
+                        showNotification('Contexts exported successfully!', 'success');
+                      });
+                    }}
+                    className={`p-4 rounded-lg border transition-colors ${
+                      isDarkMode 
+                        ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-white' 
+                        : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-900'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">📦</div>
+                    <div className="font-medium">Export Data</div>
+                    <div className="text-sm opacity-75">Download all contexts</div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.json';
+                      input.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            try {
+                              const data = JSON.parse(e.target.result);
+                              contextAPI.importData(data).then(result => {
+                                if (result.success) {
+                                  showNotification('Data imported successfully!', 'success');
+                                  syncAllData();
+                                } else {
+                                  showNotification('Import failed', 'error');
+                                }
+                              });
+                            } catch (error) {
+                              showNotification('Invalid file format', 'error');
+                            }
+                          };
+                          reader.readAsText(file);
+                        }
+                      };
+                      input.click();
+                    }}
+                    className={`p-4 rounded-lg border transition-colors ${
+                      isDarkMode 
+                        ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-white' 
+                        : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-900'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">📥</div>
+                    <div className="font-medium">Import Data</div>
+                    <div className="text-sm opacity-75">Upload context backup</div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      contextAPI.getActivityLog().then(result => {
+                        if (result.success) {
+                          console.log('Activity Log:', result.data);
+                          showNotification('Activity log downloaded to console', 'info');
+                        }
+                      });
+                    }}
+                    className={`p-4 rounded-lg border transition-colors ${
+                      isDarkMode 
+                        ? 'border-gray-600 bg-gray-700 hover:bg-gray-600 text-white' 
+                        : 'border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-900'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">📊</div>
+                    <div className="font-medium">Activity Log</div>
+                    <div className="text-sm opacity-75">View team changes</div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-6 pt-6 border-t">
+                <button
+                  onClick={closeModal}
+                  className={`px-6 py-2 border rounded-lg transition-colors ${
+                    isDarkMode 
+                      ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
