@@ -1,267 +1,133 @@
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { GitBranch, Settings, Plus, X } from 'lucide-react';
+import { GitBranch, Edit3, Trash2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 const DecisionNode = memo(({ data, selected, id }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    variable: data.variable || '',
-    conditions: data.conditions || [
-      { label: 'Yes', operator: 'equals', value: 'yes' },
-      { label: 'No', operator: 'equals', value: 'no' }
-    ]
-  });
 
-  const handleSave = () => {
-    data.onUpdate(id, formData);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setFormData({
-      variable: data.variable || '',
-      conditions: data.conditions || [
-        { label: 'Yes', operator: 'equals', value: 'yes' },
-        { label: 'No', operator: 'equals', value: 'no' }
-      ]
-    });
-    setIsEditing(false);
-  };
-
-  const updateCondition = (index, field, value) => {
-    const newConditions = [...formData.conditions];
-    newConditions[index] = { ...newConditions[index], [field]: value };
-    setFormData(prev => ({ ...prev, conditions: newConditions }));
-  };
-
-  const addCondition = () => {
-    setFormData(prev => ({
-      ...prev,
-      conditions: [...prev.conditions, { label: 'New Path', operator: 'equals', value: '' }]
-    }));
-  };
-
-  const removeCondition = (index) => {
-    if (formData.conditions.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        conditions: prev.conditions.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const getHandleStyle = (index) => {
-    const colors = [
-      '#10b981', // green
-      '#f59e0b', // amber
-      '#ef4444', // red
-      '#8b5cf6', // violet
-      '#06b6d4', // cyan
-      '#f97316'  // orange
-    ];
-    return { backgroundColor: colors[index % colors.length] };
-  };
+  const conditions = data.conditions || [
+    { label: 'Yes', operator: 'equals', value: 'yes' },
+    { label: 'No', operator: 'equals', value: 'no' }
+  ];
 
   return (
-    <div className={`rounded-lg border-2 bg-white shadow-lg min-w-[240px] ${
+    <div className={`relative rounded-xl border bg-gradient-to-br from-white to-gray-50 shadow-lg min-w-[280px] max-w-[320px] transition-all duration-200 ${
       selected 
-        ? 'border-orange-500 shadow-orange-200' 
-        : 'border-gray-200 hover:border-gray-300'
+        ? 'border-purple-400 shadow-xl ring-2 ring-purple-200 ring-opacity-50 scale-105' 
+        : 'border-gray-200 hover:border-purple-300 hover:shadow-xl hover:scale-102'
     }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-orange-50 rounded-t-lg border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <div className="p-1 bg-orange-500 rounded">
-            <GitBranch className="w-4 h-4 text-white" />
+      
+      {/* Modern Header with Gradient */}
+      <div className="relative overflow-hidden rounded-t-xl bg-gradient-to-r from-purple-500 to-purple-600 p-4">
+        <div className="absolute inset-0 bg-white opacity-10"></div>
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white bg-opacity-20 rounded-lg backdrop-blur-sm">
+              <GitBranch className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white text-sm">Decision</h3>
+              <p className="text-purple-100 text-xs">Conditional Branching</p>
+            </div>
           </div>
-          <span className="font-medium text-orange-900 text-sm">Decision</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="p-1 text-orange-600 hover:bg-orange-100 rounded"
-            title="Edit Decision"
-          >
-            <Settings className="w-3 h-3" />
-          </button>
-          <button
-            onClick={() => data.onDelete?.(id)}
-            className="p-1 text-red-600 hover:bg-red-100 rounded"
-            title="Delete Node"
-          >
-            <X className="w-3 h-3" />
-          </button>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onEdit?.(id);
+              }}
+              className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+              title="Edit Node"
+            >
+              <Edit3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onDelete?.(id);
+              }}
+              className="p-2 text-red-200 hover:bg-red-500 hover:bg-opacity-30 rounded-lg transition-colors"
+              title="Delete Node"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-3">
-        {isEditing ? (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Variable to Check
-              </label>
-              <input
-                type="text"
-                value={formData.variable}
-                onChange={(e) => setFormData(prev => ({ ...prev, variable: e.target.value }))}
-                className="w-full p-2 text-sm border border-gray-300 rounded"
-                placeholder="e.g., user_input, caller_id, etc."
-              />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-medium text-gray-700">
-                  Conditions
-                </label>
-                <button
-                  onClick={addCondition}
-                  className="flex items-center gap-1 text-xs text-blue-600 hover:bg-blue-50 px-2 py-1 rounded"
-                >
-                  <Plus className="w-3 h-3" />
-                  Add Path
-                </button>
-              </div>
-              
-              <div className="space-y-2 max-h-40 overflow-y-auto">
-                {formData.conditions.map((condition, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                    <div className="flex-1 grid grid-cols-3 gap-2">
-                      <input
-                        type="text"
-                        value={condition.label}
-                        onChange={(e) => updateCondition(index, 'label', e.target.value)}
-                        className="text-xs border border-gray-300 rounded px-2 py-1"
-                        placeholder="Label"
-                      />
-                      <select
-                        value={condition.operator}
-                        onChange={(e) => updateCondition(index, 'operator', e.target.value)}
-                        className="text-xs border border-gray-300 rounded px-2 py-1"
-                      >
-                        <option value="equals">Equals</option>
-                        <option value="contains">Contains</option>
-                        <option value="startswith">Starts With</option>
-                        <option value="endswith">Ends With</option>
-                        <option value="greater">Greater Than</option>
-                        <option value="less">Less Than</option>
-                        <option value="regex">Regex Match</option>
-                      </select>
-                      <input
-                        type="text"
-                        value={condition.value}
-                        onChange={(e) => updateCondition(index, 'value', e.target.value)}
-                        className="text-xs border border-gray-300 rounded px-2 py-1"
-                        placeholder="Value"
-                      />
-                    </div>
-                    {formData.conditions.length > 1 && (
-                      <button
-                        onClick={() => removeCondition(index)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-2 border-t">
-              <button
-                onClick={handleCancel}
-                className="px-3 py-1 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-3 py-1 text-xs text-white bg-orange-600 rounded hover:bg-orange-700"
-              >
-                Save
-              </button>
-            </div>
+      {/* Content Area */}
+      <div className="p-4 space-y-4">
+        {/* Variable Being Evaluated */}
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+          <div className="text-sm text-gray-600 mb-1 font-medium">Variable</div>
+          <div className="text-gray-900 leading-relaxed font-mono text-sm">
+            {data.variable || 'No variable specified'}
           </div>
-        ) : (
-          <div>
-            <div className="text-sm text-gray-900 mb-2">
-              {data.variable ? `Check: ${data.variable}` : 'Click to configure decision...'}
-            </div>
-            <div className="space-y-1">
-              {(data.conditions || []).slice(0, 3).map((condition, index) => (
-                <div key={index} className="flex items-center gap-2 text-xs text-gray-600">
-                  <div 
-                    className="w-2 h-2 rounded-full" 
-                    style={getHandleStyle(index)}
-                  />
-                  <span>{condition.label}: {condition.operator} "{condition.value}"</span>
-                </div>
-              ))}
-              {(data.conditions || []).length > 3 && (
-                <div className="text-xs text-gray-500">
-                  +{(data.conditions || []).length - 3} more paths...
-                </div>
+        </div>
+
+        {/* Conditions Preview */}
+        <div className="space-y-2">
+          <div className="text-sm text-gray-600 font-medium">Conditions</div>
+          {conditions.slice(0, 3).map((condition, index) => (
+            <div key={index} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-100">
+              {condition.label === 'Yes' || condition.value === 'true' ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : condition.label === 'No' || condition.value === 'false' ? (
+                <XCircle className="w-4 h-4 text-red-500" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-yellow-500" />
               )}
+              <span className="text-sm text-gray-900 font-medium">{condition.label}</span>
+              <span className="text-xs text-gray-500 ml-auto">
+                {condition.operator} "{condition.value}"
+              </span>
             </div>
+          ))}
+          {conditions.length > 3 && (
+            <div className="text-xs text-gray-500 text-center">
+              +{conditions.length - 3} more conditions
+            </div>
+          )}
+        </div>
+
+        {/* Node Status Indicator */}
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              data.variable && conditions.length > 0 ? 'bg-purple-400' : 'bg-yellow-400'
+            }`}></div>
+            <span className="text-xs text-gray-500">
+              {data.variable && conditions.length > 0 ? 'Configured' : 'Needs Setup'}
+            </span>
           </div>
-        )}
+          <div className="text-xs text-gray-400">#{id.split('-')[1]}</div>
+        </div>
       </div>
 
-      {/* Validation */}
-      {!data.variable && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-            ⚠️ Variable to check required
-          </div>
-        </div>
-      )}
-
-      {/* Handles */}
+      {/* Connection Handles */}
       <Handle
         type="target"
         position={Position.Top}
-        className="w-3 h-3 !bg-orange-500 border-2 border-white"
+        className="w-3 h-3 !bg-purple-500 border-2 border-white"
       />
       
-      {/* Dynamic source handles based on conditions */}
-      {(data.conditions || formData.conditions).map((condition, index) => {
-        const totalConditions = (data.conditions || formData.conditions).length;
-        const angle = (index / totalConditions) * 360;
-        const isBottom = angle >= 315 || angle < 45;
-        const isRight = angle >= 45 && angle < 135;
-        const isLeft = angle >= 225 && angle < 315;
-        
-        let position = Position.Bottom;
-        if (isRight) position = Position.Right;
-        else if (isLeft) position = Position.Left;
+      {/* Dynamic handles for each condition */}
+      {conditions.map((condition, index) => {
+        const colors = ['!bg-green-500', '!bg-red-500', '!bg-blue-500', '!bg-yellow-500', '!bg-orange-500'];
+        const positions = [Position.Bottom, Position.Right, Position.Left];
+        const position = positions[index % positions.length] || Position.Bottom;
         
         return (
           <Handle
             key={`condition-${index}`}
             type="source"
             position={position}
-            id={`condition-${index}`}
-            className="w-3 h-3 border-2 border-white"
-            style={getHandleStyle(index)}
+            id={condition.label.toLowerCase().replace(/\s+/g, '-')}
+            className={`w-3 h-3 ${colors[index % colors.length]} border-2 border-white`}
           />
         );
       })}
-
-      {/* Default/Else handle */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="default"
-        className="w-3 h-3 !bg-gray-500 border-2 border-white"
-        style={{ marginLeft: '20px' }}
-      />
-      
-      <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
-        Default
-      </div>
     </div>
   );
 });

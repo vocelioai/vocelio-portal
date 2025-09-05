@@ -12,7 +12,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { 
-  Plus, X, Play
+  Plus, X, Play, Check
 } from 'lucide-react';
 
 // Import extracted components
@@ -89,7 +89,18 @@ const VocelioAIPlatform = () => {
     globalNode: false,
     skipResponse: false,
     blockInterruptions: false,
-    disableRecording: false
+    disableRecording: false,
+    // Voice & Audio Settings
+    voice: 'alloy',
+    speed: 1.0,
+    pitch: 0,
+    volume: 100,
+    // Input Collection Settings
+    inputType: 'dtmf',
+    timeout: 5,
+    retries: 3,
+    maxLength: 10,
+    validationPattern: ''
   });
 
   // Railway execution states
@@ -171,6 +182,7 @@ const VocelioAIPlatform = () => {
 
   // Modal and notification handlers (moved up to fix hoisting issues)
   const closeModal = useCallback(() => {
+    console.log('Closing modal, activeModal was:', activeModal);
     setActiveModal(null);
     setCurrentEditingNode(null);
     setNodeForm({
@@ -184,7 +196,18 @@ const VocelioAIPlatform = () => {
       globalNode: false,
       skipResponse: false,
       blockInterruptions: false,
-      disableRecording: false
+      disableRecording: false,
+      // Voice & Audio Settings
+      voice: 'alloy',
+      speed: 1.0,
+      pitch: 0,
+      volume: 100,
+      // Input Collection Settings
+      inputType: 'dtmf',
+      timeout: 5,
+      retries: 3,
+      maxLength: 10,
+      validationPattern: ''
     });
   }, []);
 
@@ -352,6 +375,11 @@ const VocelioAIPlatform = () => {
     }
   }, [commandPaletteVisible]);
 
+  // Modal functions
+  const showModal = useCallback((modalId) => {
+    setActiveModal(modalId);
+  }, []);
+
   // Utility functions
   const copyId = useCallback(() => {
     navigator.clipboard.writeText('3e18c41b-1902-48d7-a86e-8e3150e83ae7');
@@ -359,7 +387,7 @@ const VocelioAIPlatform = () => {
   }, [showNotification]);
 
   // Node management
-  const editNode = (nodeId) => {
+  const editNode = useCallback((nodeId) => {
     const node = nodes.find(n => n.id === nodeId);
     if (node) {
       setCurrentEditingNode(nodeId);
@@ -374,11 +402,62 @@ const VocelioAIPlatform = () => {
         globalNode: false,
         skipResponse: false,
         blockInterruptions: false,
-        disableRecording: false
+        disableRecording: false,
+        // Voice & Audio Settings
+        voice: node.data?.voice || 'alloy',
+        speed: node.data?.speed || 1.0,
+        pitch: node.data?.pitch || 0,
+        volume: node.data?.volume || 100,
+        // Input Collection Settings
+        inputType: node.data?.inputType || 'dtmf',
+        timeout: node.data?.timeout || 5,
+        retries: node.data?.retries || 3,
+        maxLength: node.data?.maxLength || 10,
+        validationPattern: node.data?.validationPattern || ''
       });
       showModal('editNode');
     }
-  };
+  }, [nodes, showModal]);
+
+  const deleteNode = useCallback((nodeId) => {
+    if (!nodeId) {
+      console.warn('Delete node called without nodeId');
+      return;
+    }
+    
+    // Remove node from flow
+    setNodes((nds) => {
+      const filteredNodes = nds.filter((node) => node.id !== nodeId);
+      console.log(`Deleting node ${nodeId}, nodes before: ${nds.length}, after: ${filteredNodes.length}`);
+      return filteredNodes;
+    });
+    
+    // Remove connected edges
+    setEdges((eds) => {
+      const filteredEdges = eds.filter((edge) => 
+        edge.source !== nodeId && edge.target !== nodeId
+      );
+      return filteredEdges;
+    });
+    
+    showNotification('Node deleted successfully!', 'success');
+  }, [setNodes, setEdges, showNotification]);
+
+  // Add callback functions to existing nodes once they're defined
+  useEffect(() => {
+    setNodes((currentNodes) => 
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          onEdit: editNode,
+          onDelete: deleteNode,
+          message: node.data?.message || node.content,
+          content: node.data?.content || node.content
+        }
+      }))
+    );
+  }, [editNode, deleteNode]);
 
   const addNodeToCanvas = (nodeType) => {
     const newId = `node-${nodeCounter}`;
@@ -410,6 +489,12 @@ const VocelioAIPlatform = () => {
       position: { 
         x: 200 + Math.random() * 600, 
         y: 100 + Math.random() * 400 
+      },
+      data: {
+        onEdit: editNode,
+        onDelete: deleteNode,
+        message: contents[nodeType] || 'New conversation node',
+        content: contents[nodeType] || 'New conversation node'
       }
     };
 
@@ -479,7 +564,33 @@ const VocelioAIPlatform = () => {
     if (currentEditingNode) {
       setNodes(prev => prev.map(node => 
         node.id === currentEditingNode 
-          ? { ...node, title: nodeForm.name, content: nodeForm.prompt }
+          ? { 
+              ...node, 
+              title: nodeForm.name, 
+              content: nodeForm.prompt,
+              data: {
+                ...node.data,
+                // Voice & Audio Settings
+                voice: nodeForm.voice,
+                speed: nodeForm.speed,
+                pitch: nodeForm.pitch,
+                volume: nodeForm.volume,
+                // Input Collection Settings
+                inputType: nodeForm.inputType,
+                timeout: nodeForm.timeout,
+                retries: nodeForm.retries,
+                maxLength: nodeForm.maxLength,
+                validationPattern: nodeForm.validationPattern,
+                // Timing & Behavior Controls
+                skipResponse: nodeForm.skipResponse,
+                blockInterruptions: nodeForm.blockInterruptions,
+                disableRecording: nodeForm.disableRecording,
+                // Advanced Options
+                globalNode: nodeForm.globalNode,
+                temperature: nodeForm.temperature,
+                staticText: nodeForm.staticText
+              }
+            }
           : node
       ));
       showNotification('Node saved successfully!', 'success');
@@ -521,11 +632,6 @@ const VocelioAIPlatform = () => {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [commandPaletteVisible, activeModal]);
-
-  // Modal functions
-  const showModal = useCallback((modalId) => {
-    setActiveModal(modalId);
-  }, []);
 
   // Utility functions
   const saveWorkflow = useCallback(() => {
@@ -898,6 +1004,256 @@ const VocelioAIPlatform = () => {
                 />
               </div>
 
+              {/* Voice & Audio Settings */}
+              <div className={`rounded-lg p-4 ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+              }`}>
+                <h3 className={`text-lg font-semibold mb-4 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>Voice & Audio Settings</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Voice Type</label>
+                    <select 
+                      value={nodeForm.voice || 'default'}
+                      onChange={(e) => setNodeForm({...nodeForm, voice: e.target.value})}
+                      className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-600 text-white' 
+                          : 'bg-white border-gray-200 text-gray-900'
+                      }`}
+                    >
+                      <option value="default">Default Voice</option>
+                      <option value="male">Male Voice</option>
+                      <option value="female">Female Voice</option>
+                      <option value="child">Child Voice</option>
+                      <option value="elderly">Elderly Voice</option>
+                      <option value="custom">Custom Voice</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Speech Speed ({nodeForm.speed || 1}x)</label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2"
+                      step="0.1"
+                      value={nodeForm.speed || 1}
+                      onChange={(e) => setNodeForm({...nodeForm, speed: parseFloat(e.target.value)})}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Voice Pitch ({nodeForm.pitch || 0})</label>
+                    <input
+                      type="range"
+                      min="-10"
+                      max="10"
+                      step="1"
+                      value={nodeForm.pitch || 0}
+                      onChange={(e) => setNodeForm({...nodeForm, pitch: parseInt(e.target.value)})}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Volume ({nodeForm.volume || 100}%)</label>
+                    <input
+                      type="range"
+                      min="50"
+                      max="150"
+                      step="5"
+                      value={nodeForm.volume || 100}
+                      onChange={(e) => setNodeForm({...nodeForm, volume: parseInt(e.target.value)})}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Input Collection Settings */}
+              <div className={`rounded-lg p-4 ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+              }`}>
+                <h3 className={`text-lg font-semibold mb-4 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>Input Collection Settings</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Input Type</label>
+                    <select 
+                      value={nodeForm.inputType || 'speech'}
+                      onChange={(e) => setNodeForm({...nodeForm, inputType: e.target.value})}
+                      className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-600 text-white' 
+                          : 'bg-white border-gray-200 text-gray-900'
+                      }`}
+                    >
+                      <option value="speech">Speech Input</option>
+                      <option value="dtmf">DTMF (Keypad)</option>
+                      <option value="both">Both Speech & DTMF</option>
+                      <option value="none">No Input Required</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Timeout (seconds)</label>
+                    <input
+                      type="number"
+                      value={nodeForm.timeout || 5}
+                      onChange={(e) => setNodeForm({...nodeForm, timeout: parseInt(e.target.value)})}
+                      min="1"
+                      max="30"
+                      className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-600 text-white' 
+                          : 'bg-white border-gray-200 text-gray-900'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Max Retries</label>
+                    <input
+                      type="number"
+                      value={nodeForm.retries || 3}
+                      onChange={(e) => setNodeForm({...nodeForm, retries: parseInt(e.target.value)})}
+                      min="0"
+                      max="5"
+                      className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-600 text-white' 
+                          : 'bg-white border-gray-200 text-gray-900'
+                      }`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Max Input Length (seconds)</label>
+                    <input
+                      type="number"
+                      value={nodeForm.maxLength || 30}
+                      onChange={(e) => setNodeForm({...nodeForm, maxLength: parseInt(e.target.value)})}
+                      min="1"
+                      max="120"
+                      className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-600 text-white' 
+                          : 'bg-white border-gray-200 text-gray-900'
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {nodeForm.inputType !== 'speech' && nodeForm.inputType !== 'none' && (
+                  <div className="mt-4">
+                    <label className={`block text-sm font-medium mb-2 ${
+                      isDarkMode ? 'text-white' : 'text-gray-900'
+                    }`}>Validation Pattern (DTMF)</label>
+                    <input
+                      type="text"
+                      value={nodeForm.validationPattern || ''}
+                      onChange={(e) => setNodeForm({...nodeForm, validationPattern: e.target.value})}
+                      placeholder="e.g., \\d{4} for 4 digits, [1-9] for numbers 1-9"
+                      className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+                      }`}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Timing & Behavior Controls */}
+              <div className={`rounded-lg p-6 ${
+                isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
+              }`}>
+                <h3 className={`text-lg font-semibold mb-4 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>Timing & Behavior Controls</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Skip Response */}
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      type="button"
+                      className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                        nodeForm.skipResponse 
+                          ? 'bg-blue-600 border-blue-600' 
+                          : isDarkMode 
+                            ? 'border-gray-600 bg-gray-800' 
+                            : 'border-gray-300 bg-white'
+                      }`}
+                      onClick={() => setNodeForm({...nodeForm, skipResponse: !nodeForm.skipResponse})}>
+                      {nodeForm.skipResponse && <Check className="w-4 h-4 text-white" />}
+                    </button>
+                    <label className={`text-sm font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>Skip Response</label>
+                  </div>
+
+                  {/* Block Interruptions */}
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      type="button"
+                      className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                        nodeForm.blockInterruptions 
+                          ? 'bg-blue-600 border-blue-600' 
+                          : isDarkMode 
+                            ? 'border-gray-600 bg-gray-800' 
+                            : 'border-gray-300 bg-white'
+                      }`}
+                      onClick={() => setNodeForm({...nodeForm, blockInterruptions: !nodeForm.blockInterruptions})}>
+                      {nodeForm.blockInterruptions && <Check className="w-4 h-4 text-white" />}
+                    </button>
+                    <label className={`text-sm font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>Block Interruptions</label>
+                  </div>
+
+                  {/* Disable Recording */}
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      type="button"
+                      className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                        nodeForm.disableRecording 
+                          ? 'bg-blue-600 border-blue-600' 
+                          : isDarkMode 
+                            ? 'border-gray-600 bg-gray-800' 
+                            : 'border-gray-300 bg-white'
+                      }`}
+                      onClick={() => setNodeForm({...nodeForm, disableRecording: !nodeForm.disableRecording})}>
+                      {nodeForm.disableRecording && <Check className="w-4 h-4 text-white" />}
+                    </button>
+                    <label className={`text-sm font-medium ${
+                      isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                    }`}>Disable Recording</label>
+                  </div>
+                </div>
+              </div>
+
               {/* Advanced Options */}
               <div className={`rounded-lg p-6 ${
                 isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
@@ -991,7 +1347,11 @@ const VocelioAIPlatform = () => {
 
               <div className="flex gap-3 justify-end">
                 <button
-                  onClick={closeModal}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    closeModal();
+                  }}
                   className={`px-6 py-2 border rounded-lg transition-colors ${
                     isDarkMode 
                       ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
@@ -1001,7 +1361,11 @@ const VocelioAIPlatform = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={saveNode}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    saveNode();
+                  }}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Save Node

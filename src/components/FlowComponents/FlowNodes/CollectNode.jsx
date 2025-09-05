@@ -1,211 +1,121 @@
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
-import { Mic, Play, Settings, Clock, X } from 'lucide-react';
+import { Mic, Play, Edit3, Trash2, Phone, MessageSquare, Clock, Hash } from 'lucide-react';
 
 const CollectNode = memo(({ data, selected, id }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    prompt: data.prompt || '',
-    inputType: data.inputType || 'speech',
-    maxLength: data.maxLength || 30,
-    timeout: data.timeout || 5,
-    retries: data.retries || 3,
-    validationPattern: data.validationPattern || ''
-  });
-
-  const handleSave = () => {
-    data.onUpdate(id, formData);
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setFormData({
-      prompt: data.prompt || '',
-      inputType: data.inputType || 'speech',
-      maxLength: data.maxLength || 30,
-      timeout: data.timeout || 5,
-      retries: data.retries || 3,
-      validationPattern: data.validationPattern || ''
-    });
-    setIsEditing(false);
-  };
-
-  const updateFormData = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
 
   return (
-    <div className={`rounded-lg border-2 bg-white shadow-lg min-w-[220px] ${
+    <div className={`relative rounded-xl border bg-gradient-to-br from-white to-gray-50 shadow-lg min-w-[280px] max-w-[320px] transition-all duration-200 ${
       selected 
-        ? 'border-green-500 shadow-green-200' 
-        : 'border-gray-200 hover:border-gray-300'
+        ? 'border-green-400 shadow-xl ring-2 ring-green-200 ring-opacity-50 scale-105' 
+        : 'border-gray-200 hover:border-green-300 hover:shadow-xl hover:scale-102'
     }`}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-3 bg-green-50 rounded-t-lg border-b border-gray-200">
-        <div className="flex items-center gap-2">
-          <div className="p-1 bg-green-500 rounded">
-            <Mic className="w-4 h-4 text-white" />
+      
+      {/* Modern Header with Gradient */}
+      <div className="relative overflow-hidden rounded-t-xl bg-gradient-to-r from-green-500 to-green-600 p-4">
+        <div className="absolute inset-0 bg-white opacity-10"></div>
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white bg-opacity-20 rounded-lg backdrop-blur-sm">
+              <Mic className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white text-sm">Collect Input</h3>
+              <p className="text-green-100 text-xs">User Input Collection</p>
+            </div>
           </div>
-          <span className="font-medium text-green-900 text-sm">Collect Input</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => data.onTest?.(formData)}
-            className="p-1 text-green-600 hover:bg-green-100 rounded"
-            title="Test Input"
-          >
-            <Play className="w-3 h-3" />
-          </button>
-          <button
-            onClick={() => setIsEditing(!isEditing)}
-            className="p-1 text-green-600 hover:bg-green-100 rounded"
-            title="Edit Settings"
-          >
-            <Settings className="w-3 h-3" />
-          </button>
-          <button
-            onClick={() => data.onDelete?.(id)}
-            className="p-1 text-red-600 hover:bg-red-100 rounded"
-            title="Delete Node"
-          >
-            <X className="w-3 h-3" />
-          </button>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => data.onTest?.(data)}
+              className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+              title="Test Input"
+            >
+              <Play className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onEdit?.(id);
+              }}
+              className="p-2 text-white hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+              title="Edit Node"
+            >
+              <Edit3 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                data.onDelete?.(id);
+              }}
+              className="p-2 text-red-200 hover:bg-red-500 hover:bg-opacity-30 rounded-lg transition-colors"
+              title="Delete Node"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-3">
-        {isEditing ? (
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Prompt Message
-              </label>
-              <textarea
-                value={formData.prompt}
-                onChange={(e) => updateFormData('prompt', e.target.value)}
-                className="w-full p-2 text-sm border border-gray-300 rounded resize-none"
-                rows={2}
-                placeholder="What would you like the caller to do?"
-              />
+      {/* Content Area */}
+      <div className="p-4 space-y-4">
+        {/* Input Prompt */}
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+          <div className="text-sm text-gray-600 mb-1 font-medium">Input Prompt</div>
+          <div className="text-gray-900 leading-relaxed">
+            {data.prompt || data.plainText || data.content || 'No prompt configured'}
+          </div>
+        </div>
+
+        {/* Input Settings Preview */}
+        <div className="grid grid-cols-2 gap-3 text-xs">
+          <div className="bg-white rounded-lg p-2 border border-gray-100">
+            <div className="flex items-center gap-1 text-gray-500 mb-1">
+              {data.inputType === 'speech' ? <MessageSquare className="w-3 h-3" /> : 
+               data.inputType === 'dtmf' ? <Hash className="w-3 h-3" /> : <Phone className="w-3 h-3" />}
+              <span className="font-medium">Input Type</span>
             </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Input Type
-                </label>
-                <select 
-                  value={formData.inputType}
-                  onChange={(e) => updateFormData('inputType', e.target.value)}
-                  className="w-full text-xs border border-gray-300 rounded px-2 py-1"
-                >
-                  <option value="speech">Speech</option>
-                  <option value="dtmf">DTMF (Keypad)</option>
-                  <option value="both">Both</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Max Length (sec)
-                </label>
-                <input
-                  type="number"
-                  value={formData.maxLength}
-                  onChange={(e) => updateFormData('maxLength', parseInt(e.target.value))}
-                  className="w-full text-xs border border-gray-300 rounded px-2 py-1"
-                  min="1"
-                  max="60"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Timeout (sec)
-                </label>
-                <input
-                  type="number"
-                  value={formData.timeout}
-                  onChange={(e) => updateFormData('timeout', parseInt(e.target.value))}
-                  className="w-full text-xs border border-gray-300 rounded px-2 py-1"
-                  min="1"
-                  max="30"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Max Retries
-                </label>
-                <input
-                  type="number"
-                  value={formData.retries}
-                  onChange={(e) => updateFormData('retries', parseInt(e.target.value))}
-                  className="w-full text-xs border border-gray-300 rounded px-2 py-1"
-                  min="0"
-                  max="5"
-                />
-              </div>
-            </div>
-
-            {formData.inputType !== 'speech' && (
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Validation Pattern (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.validationPattern}
-                  onChange={(e) => updateFormData('validationPattern', e.target.value)}
-                  className="w-full text-xs border border-gray-300 rounded px-2 py-1"
-                  placeholder="e.g., \\d{4} for 4 digits"
-                />
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2 border-t">
-              <button
-                onClick={handleCancel}
-                className="px-3 py-1 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-3 py-1 text-xs text-white bg-green-600 rounded hover:bg-green-700"
-              >
-                Save
-              </button>
+            <div className="text-gray-900 capitalize">
+              {data.inputType || 'DTMF'}
             </div>
           </div>
-        ) : (
-          <div>
-            <div className="text-sm text-gray-900 mb-2">
-              {data.prompt || 'Click to configure input...'}
+          
+          <div className="bg-white rounded-lg p-2 border border-gray-100">
+            <div className="flex items-center gap-1 text-gray-500 mb-1">
+              <Clock className="w-3 h-3" />
+              <span className="font-medium">Timeout</span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-600">
-              <Mic className="w-3 h-3" />
-              <span>{data.inputType || 'speech'}</span>
-              <Clock className="w-3 h-3 ml-2" />
-              <span>{data.timeout || 5}s timeout</span>
+            <div className="text-gray-900">
+              {data.timeout || 5}s
             </div>
+          </div>
+        </div>
+
+        {/* Advanced Settings */}
+        {(data.retries || data.maxLength || data.validationPattern) && (
+          <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t border-gray-100">
+            {data.retries && <span>Retries: {data.retries}</span>}
+            {data.maxLength && <span>Max: {data.maxLength}</span>}
+            {data.validationPattern && <span>Pattern: ✓</span>}
           </div>
         )}
+
+        {/* Node Status Indicator */}
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              (data.prompt || data.plainText || data.content) ? 'bg-green-400' : 'bg-yellow-400'
+            }`}></div>
+            <span className="text-xs text-gray-500">
+              {(data.prompt || data.plainText || data.content) ? 'Configured' : 'Needs Setup'}
+            </span>
+          </div>
+          <div className="text-xs text-gray-400">#{id.split('-')[1]}</div>
+        </div>
       </div>
 
-      {/* Validation */}
-      {!data.prompt && (
-        <div className="px-3 pb-2">
-          <div className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
-            ⚠️ Prompt message required
-          </div>
-        </div>
-      )}
-
-      {/* Handles */}
+      {/* Connection Handles */}
       <Handle
         type="target"
         position={Position.Top}
@@ -229,17 +139,6 @@ const CollectNode = memo(({ data, selected, id }) => {
         className="w-3 h-3 !bg-yellow-500 border-2 border-white"
         id="invalid"
       />
-
-      {/* Handle Labels */}
-      <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
-        Success
-      </div>
-      <div className="absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2 text-xs text-gray-500 ml-1">
-        Timeout
-      </div>
-      <div className="absolute left-0 top-1/2 transform -translate-x-full -translate-y-1/2 text-xs text-gray-500 mr-1">
-        Invalid
-      </div>
     </div>
   );
 });
