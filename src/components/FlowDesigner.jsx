@@ -330,23 +330,63 @@ const VocelioAIPlatform = () => {
     }
   }, [showNotification]);
 
-  // Zoom functions
+  // Zoom functions - Fixed to work with ReactFlow instance
   const zoomIn = useCallback(() => {
-    setCurrentZoom(prev => Math.min(prev * 1.2, 3));
-  }, []);
+    if (reactFlowInstance) {
+      const currentViewport = reactFlowInstance.getViewport();
+      const newZoom = Math.min(currentViewport.zoom * 1.2, 3);
+      reactFlowInstance.setViewport({ 
+        x: currentViewport.x, 
+        y: currentViewport.y, 
+        zoom: newZoom 
+      });
+      setCurrentZoom(newZoom);
+    }
+  }, [reactFlowInstance]);
 
   const zoomOut = useCallback(() => {
-    setCurrentZoom(prev => Math.max(prev / 1.2, 0.3));
-  }, []);
+    if (reactFlowInstance) {
+      const currentViewport = reactFlowInstance.getViewport();
+      const newZoom = Math.max(currentViewport.zoom / 1.2, 0.3);
+      reactFlowInstance.setViewport({ 
+        x: currentViewport.x, 
+        y: currentViewport.y, 
+        zoom: newZoom 
+      });
+      setCurrentZoom(newZoom);
+    }
+  }, [reactFlowInstance]);
 
   const resetZoom = useCallback(() => {
-    setCurrentZoom(1);
-  }, []);
+    if (reactFlowInstance) {
+      reactFlowInstance.setViewport({ x: 0, y: 0, zoom: 1 });
+      setCurrentZoom(1);
+    }
+  }, [reactFlowInstance]);
 
   // Toggle functions
   const toggleFullscreen = useCallback(() => {
-    setIsFullscreen(!isFullscreen);
-  }, [isFullscreen]);
+    if (!document.fullscreenElement) {
+      // Enter fullscreen
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+        showNotification('Entered fullscreen mode', 'info');
+      }).catch(() => {
+        // Fallback to UI fullscreen
+        setIsFullscreen(!isFullscreen);
+        showNotification('UI fullscreen mode enabled', 'info');
+      });
+    } else {
+      // Exit fullscreen
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+        showNotification('Exited fullscreen mode', 'info');
+      }).catch(() => {
+        // Fallback to UI fullscreen
+        setIsFullscreen(!isFullscreen);
+      });
+    }
+  }, [isFullscreen, showNotification]);
 
   const toggleMinimap = useCallback(() => {
     setMinimapVisible(!minimapVisible);
@@ -746,6 +786,9 @@ const VocelioAIPlatform = () => {
                 });
               }}
               onInit={setReactFlowInstance}
+              onMove={(event, viewport) => {
+                setCurrentZoom(viewport.zoom);
+              }}
               nodeTypes={nodeTypes}
               fitView
               attributionPosition="bottom-left"

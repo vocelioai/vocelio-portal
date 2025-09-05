@@ -23,23 +23,71 @@ const FlowDesignerCanvasControls = ({
       {/* Canvas Controls */}
       <div className="absolute top-5 right-5 z-20 flex gap-2">
         {[
-          { icon: Plus, action: zoomIn, tooltip: 'Zoom In' },
-          { icon: Minus, action: zoomOut, tooltip: 'Zoom Out' },
-          { icon: RotateCcw, action: resetZoom, tooltip: 'Reset Zoom' },
-          { icon: Maximize, action: toggleFullscreen, tooltip: 'Toggle Fullscreen' },
-          { icon: Map, action: toggleMinimap, tooltip: 'Toggle Minimap' },
-          { icon: Grid, action: toggleGrid, tooltip: 'Toggle Grid' },
-          { icon: Layers, action: toggleLayers, tooltip: 'Layers' },
-          { icon: Clock, action: toggleHistory, tooltip: 'History' },
-          { icon: Moon, action: toggleDarkMode, tooltip: 'Dark Mode' }
-        ].map(({ icon: Icon, action, tooltip }, idx) => (
+          { 
+            icon: Plus, 
+            action: zoomIn, 
+            tooltip: 'Zoom In (Ctrl + +)',
+            disabled: currentZoom >= 3
+          },
+          { 
+            icon: Minus, 
+            action: zoomOut, 
+            tooltip: 'Zoom Out (Ctrl + -)',
+            disabled: currentZoom <= 0.3
+          },
+          { 
+            icon: RotateCcw, 
+            action: resetZoom, 
+            tooltip: 'Reset Zoom (Ctrl + 0)'
+          },
+          { 
+            icon: Maximize, 
+            action: toggleFullscreen, 
+            tooltip: 'Toggle Fullscreen (F11)'
+          },
+          { 
+            icon: Map, 
+            action: toggleMinimap, 
+            tooltip: 'Toggle Minimap',
+            active: minimapVisible
+          },
+          { 
+            icon: Grid, 
+            action: toggleGrid, 
+            tooltip: 'Toggle Grid'
+          },
+          { 
+            icon: Layers, 
+            action: toggleLayers, 
+            tooltip: 'Layers Panel',
+            active: layersVisible
+          },
+          { 
+            icon: Clock, 
+            action: toggleHistory, 
+            tooltip: 'History Panel',
+            active: historyVisible
+          },
+          { 
+            icon: Moon, 
+            action: toggleDarkMode, 
+            tooltip: 'Toggle Dark Mode'
+          }
+        ].map(({ icon: Icon, action, tooltip, disabled, active }, idx) => (
           <button
             key={idx}
             onClick={action}
+            disabled={disabled}
             className={`w-10 h-10 border-2 rounded-lg flex items-center justify-center transition-all duration-200 shadow-lg ${
-              isDarkMode 
-                ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-blue-600 hover:border-blue-500' 
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-500'
+              disabled 
+                ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-200 text-gray-400'
+                : active
+                ? isDarkMode 
+                  ? 'bg-blue-600 border-blue-500 text-white shadow-blue-500/50' 
+                  : 'bg-blue-600 border-blue-500 text-white shadow-blue-500/30'
+                : isDarkMode 
+                  ? 'bg-gray-800 border-gray-600 text-gray-200 hover:bg-blue-600 hover:border-blue-500 hover:shadow-blue-500/50' 
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-500 hover:shadow-blue-500/30'
             }`}
             title={tooltip}
           >
