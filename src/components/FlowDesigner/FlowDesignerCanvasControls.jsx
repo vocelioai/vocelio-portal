@@ -27,13 +27,13 @@ const FlowDesignerCanvasControls = ({
             icon: Plus, 
             action: zoomIn, 
             tooltip: 'Zoom In (Ctrl + +)',
-            disabled: currentZoom >= 3
+            disabled: currentZoom >= 4
           },
           { 
             icon: Minus, 
             action: zoomOut, 
             tooltip: 'Zoom Out (Ctrl + -)',
-            disabled: currentZoom <= 0.3
+            disabled: currentZoom <= 0.1
           },
           { 
             icon: RotateCcw, 

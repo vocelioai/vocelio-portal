@@ -169,6 +169,34 @@ const VocelioAIPlatform = () => {
       content: 'Explain our AI technology and capabilities',
       badge: 'Large Text', 
       position: { x: 500, y: 400 }
+    },
+    // Test nodes for infinite scrolling
+    {
+      id: 'test-far-right',
+      type: 'Test Node',
+      icon: '🔍',
+      title: 'Far Right Test',
+      content: 'This node is positioned far to the right for testing scrolling',
+      badge: 'Test',
+      position: { x: 1500, y: 200 }
+    },
+    {
+      id: 'test-far-bottom',
+      type: 'Test Node',
+      icon: '🔍',
+      title: 'Far Bottom Test',
+      content: 'This node is positioned far down for testing scrolling',
+      badge: 'Test',
+      position: { x: 300, y: 1200 }
+    },
+    {
+      id: 'test-far-corner',
+      type: 'Test Node',
+      icon: '🔍',
+      title: 'Far Corner Test',
+      content: 'This node is positioned far away for testing infinite canvas',
+      badge: 'Test',
+      position: { x: 1800, y: 1500 }
     }
   ];
 
@@ -334,7 +362,7 @@ const VocelioAIPlatform = () => {
   const zoomIn = useCallback(() => {
     if (reactFlowInstance) {
       const currentViewport = reactFlowInstance.getViewport();
-      const newZoom = Math.min(currentViewport.zoom * 1.2, 3);
+      const newZoom = Math.min(currentViewport.zoom * 1.2, 4);
       reactFlowInstance.setViewport({ 
         x: currentViewport.x, 
         y: currentViewport.y, 
@@ -347,7 +375,7 @@ const VocelioAIPlatform = () => {
   const zoomOut = useCallback(() => {
     if (reactFlowInstance) {
       const currentViewport = reactFlowInstance.getViewport();
-      const newZoom = Math.max(currentViewport.zoom / 1.2, 0.3);
+      const newZoom = Math.max(currentViewport.zoom / 1.2, 0.1);
       reactFlowInstance.setViewport({ 
         x: currentViewport.x, 
         y: currentViewport.y, 
@@ -738,8 +766,8 @@ const VocelioAIPlatform = () => {
 
       {/* Main Content - Full width canvas */}
       <div className="flex-1 flex flex-col">
-        {/* Canvas Container */}
-        <div className="flex-1 relative overflow-hidden">
+        {/* Canvas Container - Enable scrolling for complex workflows */}
+        <div className="flex-1 relative">
           {/* Canvas Controls */}
           <FlowDesignerCanvasControls
             isDarkMode={isDarkMode}
@@ -759,7 +787,7 @@ const VocelioAIPlatform = () => {
             toggleDarkMode={toggleDarkMode}
           />
 
-          {/* React Flow Canvas */}
+          {/* React Flow Canvas - Optimized for complex workflows */}
           <div className="w-full h-full">
             <ReactFlow
               nodes={nodes}
@@ -789,14 +817,22 @@ const VocelioAIPlatform = () => {
                 setCurrentZoom(viewport.zoom);
               }}
               nodeTypes={nodeTypes}
-              fitView
               attributionPosition="bottom-left"
               className={isDarkMode ? 'dark' : ''}
               defaultViewport={{ x: 0, y: 0, zoom: currentZoom }}
               minZoom={0.1}
-              maxZoom={2}
+              maxZoom={4}
               deleteKeyCode={['Backspace', 'Delete']}
               multiSelectionKeyCode={['Meta', 'Ctrl']}
+              panOnScroll={true}
+              selectionOnDrag={false}
+              panOnDrag={true}
+              zoomOnScroll={true}
+              zoomOnPinch={true}
+              zoomOnDoubleClick={false}
+              translateExtent={[[-5000, -5000], [5000, 5000]]}
+              nodeExtent={[[-5000, -5000], [5000, 5000]]}
+              preventScrolling={false}
             >
               <MiniMap 
                 nodeStrokeColor={(n) => {
@@ -824,10 +860,21 @@ const VocelioAIPlatform = () => {
               
               <Background 
                 variant={gridVisible ? "lines" : "dots"}
-                gap={20}
-                size={1}
-                color={isDarkMode ? "#374151" : "#e5e7eb"}
-                className={isDarkMode ? "bg-gray-900" : "bg-gray-50"}
+                gap={gridVisible ? 20 : 32}
+                size={gridVisible 
+                  ? (isDarkMode ? 0.8 : 1.2) 
+                  : (isDarkMode ? 1.2 : 2.5)
+                }
+                color={gridVisible 
+                  ? (isDarkMode ? "#4b5563" : "#94a3b8") 
+                  : (isDarkMode ? "#374151" : "#64748b")
+                }
+                className={isDarkMode ? "bg-gray-900" : "bg-white"}
+                style={{
+                  opacity: gridVisible 
+                    ? (isDarkMode ? 0.6 : 0.4) 
+                    : (isDarkMode ? 0.8 : 0.6)
+                }}
               />
             </ReactFlow>
           </div>
