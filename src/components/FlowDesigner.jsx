@@ -20,6 +20,7 @@ import FlowDesignerHeader from './FlowDesigner/FlowDesignerHeader';
 import FlowDesignerCanvasControls from './FlowDesigner/FlowDesignerCanvasControls';
 import FlowDesignerNotifications from './FlowDesigner/FlowDesignerNotifications';
 import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalette';
+import VoiceSelector from './VoiceSelector';
 
   // Import our new schema and components
   import { NodeTypeConfig } from '../lib/flowSchemas';
@@ -147,6 +148,7 @@ You're calling {{customer_name}} because you came across their company and saw t
     disableRecording: false,
     // Voice & Audio Settings
     voice: 'alloy',
+    voiceTier: 'regular', // New tier selection
     speed: 1.0,
     pitch: 0,
     volume: 100,
@@ -156,6 +158,19 @@ You're calling {{customer_name}} because you came across their company and saw t
     retries: 3,
     maxLength: 10,
     validationPattern: ''
+  });
+
+  // Voice selector states
+  const [availableVoices, setAvailableVoices] = useState([]);
+  const [loadingVoices, setLoadingVoices] = useState(false);
+  
+  // Global voice settings for testing and calls
+  const [globalVoiceSettings, setGlobalVoiceSettings] = useState({
+    voiceTier: 'regular',
+    selectedVoice: 'alloy',
+    speed: 1.0,
+    pitch: 0,
+    volume: 100
   });
 
   // Railway execution states
@@ -528,6 +543,7 @@ You're calling {{customer_name}} because you came across their company and saw t
         disableRecording: false,
         // Voice & Audio Settings
         voice: node.data?.voice || 'alloy',
+        voiceTier: node.data?.voiceTier || 'regular',
         speed: node.data?.speed || 1.0,
         pitch: node.data?.pitch || 0,
         volume: node.data?.volume || 100,
@@ -695,6 +711,7 @@ You're calling {{customer_name}} because you came across their company and saw t
                 ...node.data,
                 // Voice & Audio Settings
                 voice: nodeForm.voice,
+                voiceTier: nodeForm.voiceTier,
                 speed: nodeForm.speed,
                 pitch: nodeForm.pitch,
                 volume: nodeForm.volume,
@@ -718,6 +735,49 @@ You're calling {{customer_name}} because you came across their company and saw t
       ));
       showNotification('Node saved successfully!', 'success');
       closeModal();
+    }
+  };
+
+  // =============================================================================
+  // 🎤 VOICE MANAGEMENT FUNCTIONS
+  // =============================================================================
+
+  const loadVoices = async () => {
+    try {
+      setLoadingVoices(true);
+      console.log('🎤 Loading legacy voices...');
+      
+      // This is for legacy voice loading - the VoiceSelector will handle API voices
+      const legacyVoices = [
+        { id: 'alloy', name: 'Alloy', provider: 'openai', tier: 'regular' },
+        { id: 'echo', name: 'Echo', provider: 'openai', tier: 'regular' },
+        { id: 'fable', name: 'Fable', provider: 'openai', tier: 'regular' },
+        { id: 'onyx', name: 'Onyx', provider: 'openai', tier: 'regular' },
+        { id: 'nova', name: 'Nova', provider: 'openai', tier: 'regular' },
+        { id: 'shimmer', name: 'Shimmer', provider: 'openai', tier: 'regular' }
+      ];
+      
+      setAvailableVoices(legacyVoices);
+      console.log('✅ Legacy voices loaded');
+      
+    } catch (error) {
+      console.error('❌ Failed to load legacy voices:', error);
+      showNotification('Failed to load voices', 'error');
+    } finally {
+      setLoadingVoices(false);
+    }
+  };
+
+  const enableAudioContext = async () => {
+    try {
+      // Create a silent audio context to enable audio playback
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume();
+      }
+      console.log('🎵 Audio context enabled');
+    } catch (error) {
+      console.error('❌ Failed to enable audio context:', error);
     }
   };
 
@@ -1825,82 +1885,19 @@ Your goal is to establish credibility and guide interactions with confident expe
               </div>
 
               {/* Voice & Audio Settings */}
-              <div className={`rounded-lg p-4 ${
-                isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-              }`}>
-                <h3 className={`text-lg font-semibold mb-4 ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>Voice & Audio Settings</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Voice Type</label>
-                    <select 
-                      value={nodeForm.voice || 'default'}
-                      onChange={(e) => setNodeForm({...nodeForm, voice: e.target.value})}
-                      className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
-                        isDarkMode 
-                          ? 'bg-gray-800 border-gray-600 text-white' 
-                          : 'bg-white border-gray-200 text-gray-900'
-                      }`}
-                    >
-                      <option value="default">Default Voice</option>
-                      <option value="male">Male Voice</option>
-                      <option value="female">Female Voice</option>
-                      <option value="child">Child Voice</option>
-                      <option value="elderly">Elderly Voice</option>
-                      <option value="custom">Custom Voice</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Speech Speed ({nodeForm.speed || 1}x)</label>
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="2"
-                      step="0.1"
-                      value={nodeForm.speed || 1}
-                      onChange={(e) => setNodeForm({...nodeForm, speed: parseFloat(e.target.value)})}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Voice Pitch ({nodeForm.pitch || 0})</label>
-                    <input
-                      type="range"
-                      min="-10"
-                      max="10"
-                      step="1"
-                      value={nodeForm.pitch || 0}
-                      onChange={(e) => setNodeForm({...nodeForm, pitch: parseInt(e.target.value)})}
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Volume ({nodeForm.volume || 100}%)</label>
-                    <input
-                      type="range"
-                      min="50"
-                      max="150"
-                      step="5"
-                      value={nodeForm.volume || 100}
-                      onChange={(e) => setNodeForm({...nodeForm, volume: parseInt(e.target.value)})}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              </div>
+              <VoiceSelector
+                voiceTier={nodeForm.voiceTier}
+                setVoiceTier={(tier) => setNodeForm({...nodeForm, voiceTier: tier})}
+                selectedVoice={nodeForm.voice}
+                setSelectedVoice={(voice) => setNodeForm({...nodeForm, voice: voice})}
+                availableVoices={availableVoices}
+                onLoadVoices={loadVoices}
+                isLoading={loadingVoices}
+                onEnableAudio={enableAudioContext}
+                showTestCall={true}
+                testPhoneNumber="+1234567890" // You can make this configurable
+                className="mb-6"
+              />
 
               {/* Input Collection Settings */}
               <div className={`rounded-lg p-4 ${
@@ -2425,23 +2422,22 @@ Your goal is to establish credibility and guide interactions with confident expe
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>Voice</label>
-                  <select className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
-                    isDarkMode 
-                      ? 'bg-gray-700 border-gray-600 text-white' 
-                      : 'bg-white border-gray-200 text-gray-900'
-                  }`}>
-                    <option>june</option>
-                    <option>nat</option>
-                    <option>alex</option>
-                    <option>sarah</option>
-                  </select>
-                </div>
+              {/* Voice Selection for Call */}
+              <VoiceSelector
+                voiceTier={globalVoiceSettings.voiceTier}
+                setVoiceTier={(tier) => setGlobalVoiceSettings(prev => ({ ...prev, voiceTier: tier }))}
+                selectedVoice={globalVoiceSettings.selectedVoice}
+                setSelectedVoice={(voice) => setGlobalVoiceSettings(prev => ({ ...prev, selectedVoice: voice }))}
+                availableVoices={availableVoices}
+                onLoadVoices={loadVoices}
+                isLoading={loadingVoices}
+                onEnableAudio={enableAudioContext}
+                showTestCall={true}
+                testPhoneNumber="+1234567890"
+                className="mb-4"
+              />
 
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${
                     isDarkMode ? 'text-white' : 'text-gray-900'
@@ -2562,6 +2558,20 @@ Your goal is to establish credibility and guide interactions with confident expe
                   <option>Technology</option>
                 </select>
               </div>
+
+              {/* Voice Selection for Testing */}
+              <VoiceSelector
+                voiceTier={globalVoiceSettings.voiceTier}
+                setVoiceTier={(tier) => setGlobalVoiceSettings(prev => ({ ...prev, voiceTier: tier }))}
+                selectedVoice={globalVoiceSettings.selectedVoice}
+                setSelectedVoice={(voice) => setGlobalVoiceSettings(prev => ({ ...prev, selectedVoice: voice }))}
+                availableVoices={availableVoices}
+                onLoadVoices={loadVoices}
+                isLoading={loadingVoices}
+                onEnableAudio={enableAudioContext}
+                showTestCall={false}
+                className="mb-4"
+              />
 
               <div>
                 <label className={`block text-sm font-medium mb-2 ${
@@ -2698,20 +2708,20 @@ Your goal is to establish credibility and guide interactions with confident expe
                       </select>
                     </div>
 
-                    <div>
-                      <label className={`block text-sm font-medium mb-2 ${
-                        isDarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>Voice</label>
-                      <select className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
-                        isDarkMode 
-                          ? 'bg-gray-800 border-gray-600 text-white' 
-                          : 'bg-white border-gray-200 text-gray-900'
-                      }`}>
-                        <option>june</option>
-                        <option>nat</option>
-                        <option>alex</option>
-                        <option>sarah</option>
-                      </select>
+                    {/* Voice Selection for Web Client */}
+                    <div className="mb-6">
+                      <VoiceSelector
+                        voiceTier={globalVoiceSettings.voiceTier}
+                        setVoiceTier={(tier) => setGlobalVoiceSettings(prev => ({ ...prev, voiceTier: tier }))}
+                        selectedVoice={globalVoiceSettings.selectedVoice}
+                        setSelectedVoice={(voice) => setGlobalVoiceSettings(prev => ({ ...prev, selectedVoice: voice }))}
+                        availableVoices={availableVoices}
+                        onLoadVoices={loadVoices}
+                        isLoading={loadingVoices}
+                        onEnableAudio={enableAudioContext}
+                        showTestCall={false}
+                        className="max-h-60"
+                      />
                     </div>
 
                     <div>
@@ -2748,21 +2758,7 @@ Your goal is to establish credibility and guide interactions with confident expe
                     <div className="space-y-3">
                       <h4 className={`font-medium ${
                         isDarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>Audio Settings</h4>
-                      
-                      <div>
-                        <label className={`block text-sm mb-2 ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>Speech Rate: <span className="text-blue-600">1.0x</span></label>
-                        <input type="range" min="0.5" max="2" step="0.1" defaultValue="1" className="w-full" />
-                      </div>
-
-                      <div>
-                        <label className={`block text-sm mb-2 ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>Volume: <span className="text-blue-600">80%</span></label>
-                        <input type="range" min="0" max="100" defaultValue="80" className="w-full" />
-                      </div>
+                      }`}>Client Settings</h4>
 
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-6 bg-blue-600 rounded-full cursor-pointer">

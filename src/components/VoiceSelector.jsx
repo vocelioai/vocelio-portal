@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Volume2, Play, Pause, Loader, RefreshCw, Star, Crown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, Play, Pause, Loader, RefreshCw, Star, Crown, Phone } from 'lucide-react';
+import { voiceService } from '../lib/voiceService';
 
 const VoiceSelector = ({ 
   voiceTier, 
@@ -9,14 +10,56 @@ const VoiceSelector = ({
   availableVoices, 
   onLoadVoices,
   isLoading,
-  onEnableAudio
+  onEnableAudio,
+  showTestCall = false,
+  testPhoneNumber = ""
 }) => {
   const [previewLoading, setPreviewLoading] = useState(null);
   const [currentAudio, setCurrentAudio] = useState(null);
   const [customScript, setCustomScript] = useState('');
+  const [testingCall, setTestingCall] = useState(false);
+  const [voicesFromAPI, setVoicesFromAPI] = useState({ regular: [], premium: [] });
+  const [loadingVoices, setLoadingVoices] = useState(true);
 
   const defaultScript = "Hello! This is a preview of this voice. How do I sound?";
   const maxScriptLength = 500;
+
+  // =============================================================================
+  // 🚀 INITIALIZATION & VOICE LOADING
+  // =============================================================================
+
+  useEffect(() => {
+    loadVoicesFromAPI();
+  }, []);
+
+  const loadVoicesFromAPI = async () => {
+    try {
+      setLoadingVoices(true);
+      console.log('🎤 Loading voices from TTS APIs...');
+      
+      const voices = await voiceService.loadAllVoices();
+      setVoicesFromAPI(voices);
+      
+      console.log('✅ Loaded voices:', voices);
+      
+      // Auto-select first voice if none selected
+      const tierVoices = voiceTier === 'premium' ? voices.premium : voices.regular;
+      if (!selectedVoice && tierVoices.length > 0) {
+        setSelectedVoice(tierVoices[0].id);
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to load voices from API:', error);
+    } finally {
+      setLoadingVoices(false);
+    }
+  };
+
+  // Get current voices based on tier (prioritize API voices over passed props)
+  const getCurrentVoices = () => {
+    const apiVoices = voiceTier === 'premium' ? voicesFromAPI.premium : voicesFromAPI.regular;
+    return apiVoices.length > 0 ? apiVoices : availableVoices;
+  };
 
   const handleVoicePreview = async (voiceId) => {
     try {
@@ -35,117 +78,70 @@ const VoiceSelector = ({
         setCurrentAudio(null);
       }
 
-      // Find the voice object to get the correct provider
-      const voiceObj = availableVoices.find(v => v.id === voiceId);
-      const provider = voiceObj?.provider || (voiceTier === 'premium' ? 'elevenlabs' : 'azure');
-      
-      // ElevenLabs doesn't use language parameter the same way as Azure
+      // Use voiceService for preview
       const scriptText = customScript.trim() || defaultScript;
-      const requestBody = {
-        text: scriptText,
-        provider: provider,
-        voice_id: voiceId,
-        ...(provider === 'azure' ? { language: 'en-US' } : {}),
+      const result = await voiceService.testVoice(voiceId, scriptText, {
         speed: 1.0,
-        customer_id: 'voice_preview',
-        call_id: 'preview_' + Date.now()
-      };
-      
-      console.log('🎵 Request body:', requestBody);
-      console.log('🎵 Using script:', scriptText.substring(0, 50) + (scriptText.length > 50 ? '...' : ''));
-      console.log('🎵 Using provider:', provider, 'for voice tier:', voiceTier);
-      console.log('🎵 Voice object:', voiceObj);
-      console.log('🎵 TTS URL:', `${import.meta.env.VITE_TTS_ADAPTER_URL}/synthesize`);
-
-      // Get preview from TTS adapter using synthesize endpoint
-      const response = await fetch(`${import.meta.env.VITE_TTS_ADAPTER_URL}/synthesize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-        },
-        body: JSON.stringify(requestBody)
+        pitch: 0,
+        volume: 100
       });
 
-      console.log('🎵 Response status:', response.status, response.statusText);
-      console.log('🎵 Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('🎵 Response error:', errorText);
-        throw new Error(`Preview failed: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      // Get audio blob from synthesize response
-      const audioBlob = await response.blob();
-      console.log('🎵 Audio blob size:', audioBlob.size, 'type:', audioBlob.type);
-      
-      if (audioBlob.size === 0) {
-        throw new Error('Empty audio response from ' + provider);
-      }
-      
-      // Check if it's actually an error response in blob form
-      if (audioBlob.type.includes('text') || audioBlob.type.includes('json')) {
-        const errorText = await audioBlob.text();
-        console.error('🎵 Error response in blob:', errorText);
-        throw new Error('API returned error: ' + errorText);
-      }
-      
-      const audioUrl = URL.createObjectURL(audioBlob);
-      console.log('🎵 Audio URL created:', audioUrl);
-      
-      // Create audio element with explicit user interaction handling
-      const audio = new Audio();
-      
-      // Set up event listeners before setting src
-      audio.onloadstart = () => console.log('🎵 Audio loading started');
-      audio.oncanplay = () => console.log('🎵 Audio can play');
-      audio.onloadeddata = () => {
-        console.log('🎵 Audio loaded successfully, duration:', audio.duration, 'provider:', provider);
-      };
-      
-      audio.onended = () => {
+      if (result.success) {
+        // Create audio element with explicit user interaction handling
+        const audio = new Audio();
+        
+        // Set up event listeners before setting src
+        audio.onloadstart = () => console.log('🎵 Audio loading started');
+        audio.oncanplay = () => console.log('🎵 Audio can play');
+        audio.onloadeddata = () => {
+          console.log('🎵 Audio loaded successfully, duration:', audio.duration);
+        };
+        
+        audio.onended = () => {
           console.log('🎵 Audio playback ended');
           setPreviewLoading(null);
           setCurrentAudio(null);
-          URL.revokeObjectURL(audioUrl); // Clean up blob URL
+          URL.revokeObjectURL(result.audioUrl); // Clean up blob URL
         };
-        
-      audio.onerror = (error) => {
+          
+        audio.onerror = (error) => {
           console.error('🎵 Audio playback error:', error, audio.error);
           setPreviewLoading(null);
           setCurrentAudio(null);
-          URL.revokeObjectURL(audioUrl); // Clean up blob URL
+          URL.revokeObjectURL(result.audioUrl); // Clean up blob URL
         };
 
-      // Set the audio source
-      audio.src = audioUrl;
-      setCurrentAudio(audio);
-      
-      // Load the audio
-      audio.load();
-      
-      console.log('🎵 Starting audio playback...');
-      
-      // Try to play with proper error handling
-      try {
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-          console.log('🎵 Audio play() called successfully');
+        // Set the audio source
+        audio.src = result.audioUrl;
+        setCurrentAudio(audio);
+        
+        // Load the audio
+        audio.load();
+        
+        console.log('🎵 Starting audio playback...');
+        
+        // Try to play with proper error handling
+        try {
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            await playPromise;
+            console.log('🎵 Audio play() called successfully');
+          }
+        } catch (playError) {
+          console.error('🎵 Play promise rejected:', playError);
+          if (playError.name === 'NotAllowedError') {
+            console.log('🎵 Audio blocked by browser - user interaction required');
+          }
+          throw playError;
         }
-      } catch (playError) {
-        console.error('🎵 Play promise rejected:', playError);
-        if (playError.name === 'NotAllowedError') {
-          console.log('🎵 Audio blocked by browser - user interaction required');
-          // You might want to show a message to the user here
-        }
-        throw playError;
+      } else {
+        throw new Error(result.error);
       }
       
     } catch (error) {
       console.error('❌ Voice preview error:', error);
       setPreviewLoading(null);
+      alert('Voice preview failed: ' + error.message);
     }
   };
 
@@ -155,6 +151,53 @@ const VoiceSelector = ({
       currentAudio.currentTime = 0;
       setCurrentAudio(null);
       setPreviewLoading(null);
+    }
+  };
+
+  // =============================================================================
+  // 📞 TEST CALL FUNCTIONALITY
+  // =============================================================================
+
+  const handleTestCall = async (voiceId) => {
+    if (!testPhoneNumber || testingCall) return;
+    
+    try {
+      setTestingCall(true);
+      console.log('📞 Sending test call to:', testPhoneNumber, 'with voice:', voiceId);
+      
+      const testScript = customScript.trim() || "Hello! This is a test call from Vocelio to demonstrate voice quality. Thank you for testing our voice system!";
+      
+      const result = await voiceService.sendTestCall(testPhoneNumber, voiceId, testScript, {
+        speed: 1.0,
+        pitch: 0,
+        volume: 100
+      });
+      
+      if (result.success) {
+        alert(`Test call initiated successfully!\nCall ID: ${result.callId}\nVoice: ${result.voice.name}\nPhone: ${result.phoneNumber}`);
+      } else {
+        alert('Test call failed: ' + result.error);
+      }
+      
+    } catch (error) {
+      console.error('❌ Test call error:', error);
+      alert('Test call error: ' + error.message);
+    } finally {
+      setTestingCall(false);
+    }
+  };
+
+  // =============================================================================
+  // 🎯 TIER SWITCHING
+  // =============================================================================
+
+  const handleTierChange = (newTier) => {
+    setVoiceTier(newTier);
+    
+    // Auto-select first voice in new tier
+    const tierVoices = newTier === 'premium' ? voicesFromAPI.premium : voicesFromAPI.regular;
+    if (tierVoices.length > 0) {
+      setSelectedVoice(tierVoices[0].id);
     }
   };
 
@@ -178,13 +221,24 @@ const VoiceSelector = ({
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Voice Settings</h3>
-        <button
-          onClick={onLoadVoices}
-          disabled={isLoading}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={loadVoicesFromAPI}
+            disabled={loadingVoices}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh voices from APIs"
+          >
+            <RefreshCw className={`h-4 w-4 ${loadingVoices ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={onLoadVoices}
+            disabled={isLoading}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Refresh legacy voices"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* Tier Selection */}
@@ -194,7 +248,7 @@ const VoiceSelector = ({
         </label>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => setVoiceTier('regular')}
+            onClick={() => handleTierChange('regular')}
             className={`p-3 border rounded-lg text-center transition-all ${
               voiceTier === 'regular'
                 ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -205,11 +259,13 @@ const VoiceSelector = ({
               <Star className="h-4 w-4" />
               <span className="font-medium">Regular</span>
             </div>
-            <div className="text-xs text-gray-500">Standard quality</div>
+            <div className="text-xs text-gray-500">
+              Azure TTS ({voicesFromAPI.regular.length} voices)
+            </div>
           </button>
           
           <button
-            onClick={() => setVoiceTier('premium')}
+            onClick={() => handleTierChange('premium')}
             className={`p-3 border rounded-lg text-center transition-all ${
               voiceTier === 'premium'
                 ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
@@ -220,7 +276,9 @@ const VoiceSelector = ({
               <Crown className="h-4 w-4" />
               <span className="font-medium">Premium</span>
             </div>
-            <div className="text-xs text-gray-500">High quality</div>
+            <div className="text-xs text-gray-500">
+              ElevenLabs ({voicesFromAPI.premium.length} voices)
+            </div>
           </button>
         </div>
       </div>
@@ -274,21 +332,21 @@ const VoiceSelector = ({
       {/* Voice Selection */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Available Voices ({availableVoices.length})
+          Available Voices ({getCurrentVoices().length})
         </label>
         
-        {isLoading ? (
+        {(isLoading || loadingVoices) ? (
           <div className="flex items-center justify-center py-8">
             <Loader className="h-6 w-6 animate-spin text-blue-600" />
             <span className="ml-2 text-gray-600">Loading voices...</span>
           </div>
-        ) : availableVoices.length === 0 ? (
+        ) : getCurrentVoices().length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No voices available for {voiceTier} tier
           </div>
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {availableVoices.map((voice) => (
+            {getCurrentVoices().map((voice) => (
               <div
                 key={voice.id}
                 className={`border rounded-lg p-3 transition-all cursor-pointer ${
@@ -305,6 +363,11 @@ const VoiceSelector = ({
                       <span className="font-medium text-gray-900">
                         {voice.name || voice.display_name}
                       </span>
+                      {voice.provider && (
+                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
+                          {voice.provider}
+                        </span>
+                      )}
                     </div>
                     
                     <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -331,6 +394,26 @@ const VoiceSelector = ({
                       <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
                     )}
                     
+                    {/* Test Call Button */}
+                    {showTestCall && testPhoneNumber && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTestCall(voice.id);
+                        }}
+                        disabled={testingCall}
+                        className="p-2 text-gray-500 hover:text-green-700 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
+                        title="Send test call"
+                      >
+                        {testingCall ? (
+                          <Loader className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Phone className="h-4 w-4" />
+                        )}
+                      </button>
+                    )}
+                    
+                    {/* Preview Button */}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -358,12 +441,12 @@ const VoiceSelector = ({
       </div>
 
       {/* Selected Voice Info */}
-      {selectedVoice && availableVoices.length > 0 && (
+      {selectedVoice && getCurrentVoices().length > 0 && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm">
             <span className="font-medium text-blue-900">Selected:</span>
             <span className="text-blue-700 ml-1">
-              {availableVoices.find(v => v.id === selectedVoice)?.name || selectedVoice}
+              {getCurrentVoices().find(v => v.id === selectedVoice)?.name || selectedVoice}
             </span>
           </div>
           
@@ -385,6 +468,14 @@ const VoiceSelector = ({
               <div className="h-2 w-2 bg-green-500 rounded-full"></div>
               <span>Available</span>
             </div>
+            
+            {getCurrentVoices().find(v => v.id === selectedVoice)?.provider && (
+              <div className="flex items-center gap-1">
+                <span className="text-xs font-mono">
+                  {getCurrentVoices().find(v => v.id === selectedVoice)?.provider}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -396,6 +487,24 @@ const VoiceSelector = ({
           <span>Playing voice preview...</span>
         </div>
       )}
+
+      {/* Test Call Status */}
+      {testingCall && (
+        <div className="mt-4 flex items-center gap-2 text-sm text-green-600">
+          <Phone className="h-4 w-4" />
+          <span>Initiating test call...</span>
+        </div>
+      )}
+
+      {/* Voice Stats */}
+      <div className="mt-4 text-xs text-gray-500 text-center border-t pt-2">
+        Total: {voicesFromAPI.regular.length + voicesFromAPI.premium.length} voices • 
+        Regular: {voicesFromAPI.regular.length} • 
+        Premium: {voicesFromAPI.premium.length}
+        {voicesFromAPI.regular.length + voicesFromAPI.premium.length > 0 && (
+          <span className="ml-2 text-green-600">✓ Loaded from APIs</span>
+        )}
+      </div>
     </div>
   );
 };
