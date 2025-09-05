@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, Play, Pause, Loader, RefreshCw, Star, Crown, Phone } from 'lucide-react';
+import { Volume2, Play, Pause, Loader, RefreshCw, Star, Crown, Phone, DollarSign, AlertTriangle } from 'lucide-react';
 import { voiceService } from '../lib/voiceService';
 
 const VoiceSelector = ({ 
@@ -20,6 +20,9 @@ const VoiceSelector = ({
   const [testingCall, setTestingCall] = useState(false);
   const [voicesFromAPI, setVoicesFromAPI] = useState({ regular: [], premium: [] });
   const [loadingVoices, setLoadingVoices] = useState(true);
+  const [pricingInfo, setPricingInfo] = useState(null);
+  const [showPricingWarning, setShowPricingWarning] = useState(false);
+  const [costEstimation, setCostEstimation] = useState(null);
 
   const defaultScript = "Hello! This is a preview of this voice. How do I sound?";
   const maxScriptLength = 500;
@@ -37,13 +40,19 @@ const VoiceSelector = ({
       setLoadingVoices(true);
       console.log('🎤 Loading voices from TTS APIs...');
       
-      const voices = await voiceService.loadAllVoices();
-      setVoicesFromAPI(voices);
+      const voicesData = await voiceService.loadAllVoices();
+      setVoicesFromAPI(voicesData);
       
-      console.log('✅ Loaded voices:', voices);
+      // Store pricing information
+      if (voicesData.pricing) {
+        setPricingInfo(voicesData.pricing);
+        console.log('💰 Pricing info loaded:', voicesData.pricing);
+      }
+      
+      console.log('✅ Loaded voices:', voicesData);
       
       // Auto-select first voice if none selected
-      const tierVoices = voiceTier === 'premium' ? voices.premium : voices.regular;
+      const tierVoices = voiceTier === 'premium' ? voicesData.premium : voicesData.regular;
       if (!selectedVoice && tierVoices.length > 0) {
         setSelectedVoice(tierVoices[0].id);
       }
@@ -170,11 +179,20 @@ const VoiceSelector = ({
       const result = await voiceService.sendTestCall(testPhoneNumber, voiceId, testScript, {
         speed: 1.0,
         pitch: 0,
-        volume: 100
+        volume: 100,
+        estimatedDuration: 30 // 30 second test call
       });
       
       if (result.success) {
-        alert(`Test call initiated successfully!\nCall ID: ${result.callId}\nVoice: ${result.voice.name}\nPhone: ${result.phoneNumber}`);
+        const costInfo = result.cost_estimation 
+          ? `\nEstimated cost: ${result.cost_estimation.cost_breakdown.total} (${result.cost_estimation.tier} tier)`
+          : '';
+        
+        const warningInfo = result.pricing_warning?.shouldWarn 
+          ? `\n⚠️ ${result.pricing_warning.warning_message}`
+          : '';
+          
+        alert(`Test call initiated successfully!${costInfo}${warningInfo}\n\nCall ID: ${result.call_sid}\nVoice: ${result.voice.name}\nPhone: ${testPhoneNumber}`);
       } else {
         alert('Test call failed: ' + result.error);
       }
@@ -188,10 +206,19 @@ const VoiceSelector = ({
   };
 
   // =============================================================================
-  // 🎯 TIER SWITCHING
+  // 🎯 TIER SWITCHING WITH PRICING AWARENESS
   // =============================================================================
 
   const handleTierChange = (newTier) => {
+    // Check for pricing warning when switching to premium
+    if (newTier === 'premium' && pricingInfo) {
+      const warning = voiceService.validatePricingWarning(newTier, 60); // 1 minute estimate
+      if (warning.shouldWarn) {
+        setShowPricingWarning(true);
+        setCostEstimation(warning.cost_comparison);
+      }
+    }
+    
     setVoiceTier(newTier);
     
     // Auto-select first voice in new tier
@@ -262,6 +289,11 @@ const VoiceSelector = ({
             <div className="text-xs text-gray-500">
               Azure TTS ({voicesFromAPI.regular.length} voices)
             </div>
+            {pricingInfo?.regular && (
+              <div className="text-xs font-medium text-green-600 mt-1">
+                ${pricingInfo.regular.price_per_minute.toFixed(3)}/min
+              </div>
+            )}
           </button>
           
           <button
@@ -279,9 +311,39 @@ const VoiceSelector = ({
             <div className="text-xs text-gray-500">
               ElevenLabs ({voicesFromAPI.premium.length} voices)
             </div>
+            {pricingInfo?.premium && (
+              <div className="text-xs font-medium text-amber-600 mt-1">
+                ${pricingInfo.premium.price_per_minute.toFixed(3)}/min
+              </div>
+            )}
           </button>
         </div>
       </div>
+
+      {/* Pricing Warning for Premium Tier */}
+      {showPricingWarning && voiceTier === 'premium' && costEstimation && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-800">Premium Voice Cost Notice</p>
+              <p className="text-xs text-amber-700 mt-1">
+                Premium voices cost ${pricingInfo?.premium?.price_per_minute.toFixed(3)}/min 
+                ({((pricingInfo?.premium?.price_per_minute / pricingInfo?.regular?.price_per_minute) * 100).toFixed(0)}% more than regular)
+              </p>
+              <div className="text-xs text-amber-600 mt-2">
+                <strong>Cost comparison (1 min call):</strong> Regular: {costEstimation.regular} → Premium: {costEstimation.premium}
+              </div>
+              <button
+                onClick={() => setShowPricingWarning(false)}
+                className="text-xs text-amber-700 underline mt-1 hover:text-amber-800"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Custom Script Input */}
       <div className="mb-6">

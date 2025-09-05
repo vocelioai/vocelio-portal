@@ -21,6 +21,8 @@ import FlowDesignerCanvasControls from './FlowDesigner/FlowDesignerCanvasControl
 import FlowDesignerNotifications from './FlowDesigner/FlowDesignerNotifications';
 import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalette';
 import VoiceSelector from './VoiceSelector';
+import CallCostTracker from './CallCostTracker';
+import PricingValidationModal from './PricingValidationModal';
 
   // Import our new schema and components
   import { NodeTypeConfig } from '../lib/flowSchemas';
@@ -172,6 +174,10 @@ You're calling {{customer_name}} because you came across their company and saw t
     pitch: 0,
     volume: 100
   });
+
+  // Pricing validation state
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [pendingCall, setPendingCall] = useState(null);
 
   // Railway execution states
   const [executionMonitorVisible, setExecutionMonitorVisible] = useState(false);
@@ -827,9 +833,38 @@ You're calling {{customer_name}} because you came across their company and saw t
   }, [showNotification]);
 
   const startCall = useCallback(() => {
+    // Check if we should show pricing validation for premium voices
+    if (globalVoiceSettings.voiceTier === 'premium') {
+      setPendingCall({
+        type: 'call',
+        voiceTier: globalVoiceSettings.voiceTier,
+        voiceName: globalVoiceSettings.selectedVoice || 'Premium Voice',
+        phoneNumber: 'Selected Number',
+        estimatedDuration: 60
+      });
+      setShowPricingModal(true);
+    } else {
+      // Proceed with regular voice call
+      executeCall();
+    }
+  }, [globalVoiceSettings]);
+
+  const executeCall = useCallback(() => {
     showNotification('Call initiated successfully!', 'success');
     closeModal();
   }, [showNotification]);
+
+  const handlePricingConfirm = useCallback((costEstimation) => {
+    setShowPricingModal(false);
+    setPendingCall(null);
+    showNotification(`Call initiated! Estimated cost: ${costEstimation.cost_breakdown.total}`, 'success');
+    closeModal();
+  }, [showNotification]);
+
+  const handlePricingCancel = useCallback(() => {
+    setShowPricingModal(false);
+    setPendingCall(null);
+  }, []);
 
   const promoteToProduction = useCallback(() => {
     showNotification('Successfully promoted to production!', 'success');
@@ -2478,6 +2513,20 @@ Your goal is to establish credibility and guide interactions with confident expe
                       ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                       : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
                   }`}
+                />
+              </div>
+
+              {/* Cost Estimation */}
+              <div className="border-t pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Call Cost Estimation
+                  </h4>
+                </div>
+                <CallCostTracker 
+                  voiceTier={globalVoiceSettings.voiceTier}
+                  estimatedDuration={60}
+                  showEstimate={true}
                 />
               </div>
 
@@ -4379,6 +4428,17 @@ Your goal is to establish credibility and guide interactions with confident expe
           </div>
         </div>
       )}
+
+      {/* Pricing Validation Modal */}
+      <PricingValidationModal
+        isOpen={showPricingModal}
+        onClose={handlePricingCancel}
+        onConfirm={handlePricingConfirm}
+        voiceTier={pendingCall?.voiceTier}
+        estimatedDuration={pendingCall?.estimatedDuration}
+        phoneNumber={pendingCall?.phoneNumber}
+        voiceName={pendingCall?.voiceName}
+      />
     </div>
   );
 };

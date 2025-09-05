@@ -16,10 +16,155 @@ class VoiceService {
       premium: 'elevenlabs'
     };
     
+    // Pricing configuration (fetched from backend)
+    this.pricingTiers = {
+      regular: { price_per_minute: 0.08, provider: 'azure' },
+      premium: { price_per_minute: 0.35, provider: 'elevenlabs' }
+    };
+    
     // Initialize voice lists
     this.regularVoices = [];
     this.premiumVoices = [];
     this.loadedVoices = false;
+    this.pricingLoaded = false;
+  }
+
+  // =============================================================================
+  // 💰 PRICING & COST CALCULATION
+  // =============================================================================
+
+  /**
+   * Load pricing information from TTS adapter
+   */
+  async loadPricingTiers() {
+    if (this.pricingLoaded) {
+      return this.pricingTiers;
+    }
+
+    try {
+      console.log('💰 Loading pricing tiers...');
+      
+      const response = await fetch(`${this.ttsAdapterUrl}/tiers`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+        },
+        timeout: 10000
+      });
+
+      if (!response.ok) {
+        throw new Error(`Pricing fetch failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.tiers) {
+        this.pricingTiers = {
+          regular: {
+            price_per_minute: data.tiers.regular?.price_per_minute || 0.08,
+            provider: data.tiers.regular?.tts_provider || 'azure',
+            quality: data.tiers.regular?.quality || 'standard',
+            description: data.description?.regular || 'Azure TTS voices'
+          },
+          premium: {
+            price_per_minute: data.tiers.premium?.price_per_minute || 0.35,
+            provider: data.tiers.premium?.tts_provider || 'elevenlabs',
+            quality: data.tiers.premium?.quality || 'premium',
+            description: data.description?.premium || 'ElevenLabs TTS voices'
+          }
+        };
+        this.pricingLoaded = true;
+        console.log('✅ Pricing tiers loaded:', this.pricingTiers);
+      }
+
+      return this.pricingTiers;
+    } catch (error) {
+      console.error('❌ Failed to load pricing tiers:', error);
+      // Return default pricing on error
+      return this.pricingTiers;
+    }
+  }
+
+  /**
+   * Calculate call cost based on duration and voice tier
+   * @param {number} durationSeconds - Call duration in seconds
+   * @param {string} voiceTier - Voice tier (regular/premium)
+   * @returns {number} Cost in dollars
+   */
+  calculateCallCost(durationSeconds, voiceTier = 'regular') {
+    const durationMinutes = durationSeconds / 60;
+    const rate = this.pricingTiers[voiceTier]?.price_per_minute || 0.08;
+    return parseFloat((durationMinutes * rate).toFixed(4));
+  }
+
+  /**
+   * Estimate call cost for given duration
+   * @param {number} estimatedDurationSeconds - Estimated duration in seconds
+   * @param {string} voiceTier - Voice tier (regular/premium)
+   * @returns {Object} Cost estimation details
+   */
+  estimateCallCost(estimatedDurationSeconds, voiceTier = 'regular') {
+    const cost = this.calculateCallCost(estimatedDurationSeconds, voiceTier);
+    const rate = this.pricingTiers[voiceTier]?.price_per_minute || 0.08;
+    
+    return {
+      estimated_cost: cost,
+      duration_minutes: estimatedDurationSeconds / 60,
+      rate_per_minute: rate,
+      tier: voiceTier,
+      provider: this.pricingTiers[voiceTier]?.provider || 'azure',
+      cost_breakdown: {
+        base_rate: `$${rate.toFixed(3)}/min`,
+        duration: `${(estimatedDurationSeconds / 60).toFixed(2)} minutes`,
+        total: `$${cost.toFixed(4)}`
+      }
+    };
+  }
+
+  /**
+   * Get pricing information for a specific tier
+   * @param {string} tier - Voice tier (regular/premium)
+   * @returns {Object} Pricing details
+   */
+  getTierPricing(tier = 'regular') {
+    return {
+      ...this.pricingTiers[tier],
+      tier: tier,
+      cost_per_minute_formatted: `$${this.pricingTiers[tier]?.price_per_minute.toFixed(3)}/min`,
+      cost_comparison: tier === 'premium' 
+        ? `${((this.pricingTiers.premium.price_per_minute / this.pricingTiers.regular.price_per_minute) * 100).toFixed(0)}% more than regular`
+        : 'Base pricing tier'
+    };
+  }
+
+  /**
+   * Validate if user should be warned about premium pricing
+   * @param {string} voiceTier - Selected voice tier
+   * @param {number} estimatedDuration - Estimated call duration in seconds
+   * @returns {Object} Warning details
+   */
+  validatePricingWarning(voiceTier, estimatedDuration = 60) {
+    if (voiceTier !== 'premium') {
+      return { shouldWarn: false };
+    }
+
+    const regularCost = this.calculateCallCost(estimatedDuration, 'regular');
+    const premiumCost = this.calculateCallCost(estimatedDuration, 'premium');
+    const costDifference = premiumCost - regularCost;
+    const percentageIncrease = ((premiumCost / regularCost) - 1) * 100;
+
+    return {
+      shouldWarn: true,
+      warning_message: `Premium voices cost ${percentageIncrease.toFixed(0)}% more than regular voices`,
+      cost_comparison: {
+        regular: `$${regularCost.toFixed(4)}`,
+        premium: `$${premiumCost.toFixed(4)}`,
+        difference: `+$${costDifference.toFixed(4)}`
+      },
+      recommendation: costDifference > 0.10 
+        ? 'Consider using regular voices for longer calls to reduce costs'
+        : 'Cost difference is minimal for short calls'
+    };
   }
 
   // =============================================================================
@@ -33,7 +178,8 @@ class VoiceService {
     if (this.isLoading || this.loadedVoices) {
       return {
         regular: this.regularVoices,
-        premium: this.premiumVoices
+        premium: this.premiumVoices,
+        pricing: this.pricingTiers
       };
     }
 
@@ -41,6 +187,9 @@ class VoiceService {
 
     try {
       console.log('🎤 Loading voices from TTS adapters...');
+      
+      // Load pricing information first
+      await this.loadPricingTiers();
       
       // Load voices in parallel
       const [regularVoices, premiumVoices] = await Promise.allSettled([
@@ -68,21 +217,32 @@ class VoiceService {
 
       this.loadedVoices = true;
       
-      return {
+      const result = {
         regular: this.regularVoices,
-        premium: this.premiumVoices
+        premium: this.premiumVoices,
+        pricing: this.pricingTiers,
+        summary: {
+          regular_count: this.regularVoices.length,
+          premium_count: this.premiumVoices.length,
+          regular_pricing: this.getTierPricing('regular'),
+          premium_pricing: this.getTierPricing('premium')
+        }
       };
+
+      console.log('🎉 Voice loading complete:', result.summary);
+      return result;
 
     } catch (error) {
       console.error('❌ Error loading voices:', error);
       
-      // Return fallback voices
+      // Return fallback voices with pricing
       this.regularVoices = this.getFallbackRegularVoices();
       this.premiumVoices = this.getFallbackPremiumVoices();
       
       return {
         regular: this.regularVoices,
-        premium: this.premiumVoices
+        premium: this.premiumVoices,
+        pricing: this.pricingTiers
       };
     } finally {
       this.isLoading = false;
@@ -378,7 +538,13 @@ class VoiceService {
         throw new Error(`Voice not found: ${voiceId}`);
       }
 
+      // Estimate call cost for typical test call (30 seconds)
+      const estimatedDuration = options.estimatedDuration || 30;
+      const costEstimation = this.estimateCallCost(estimatedDuration, voice.tier);
+      const pricingWarning = this.validatePricingWarning(voice.tier, estimatedDuration);
+
       console.log(`📞 Sending test call to ${phoneNumber} with voice: ${voice.name}`);
+      console.log(`💰 Estimated cost: ${costEstimation.cost_breakdown.total} (${voice.tier} tier)`);
 
       // Use telephony adapter endpoint
       const telephonyUrl = import.meta.env.VITE_TELEPHONY_ADAPTER_URL;
@@ -392,12 +558,19 @@ class VoiceService {
         message: testScript || "Hello! This is a test call from Vocelio. How are you doing today?",
         voice_settings: {
           provider: voice.provider,
-          voice_id: voiceId
+          voice_id: voiceId,
+          tier: voice.tier
+        },
+        pricing: {
+          tier: voice.tier,
+          estimated_cost: costEstimation.estimated_cost,
+          rate_per_minute: costEstimation.rate_per_minute
         },
         metadata: {
           test_call: true,
           voice_tier: voice.tier,
-          initiated_from: 'voice_selector'
+          initiated_from: 'voice_selector',
+          cost_estimation: costEstimation
         }
       };
 
@@ -418,10 +591,12 @@ class VoiceService {
 
       return {
         success: true,
-        callId: result.call_sid || result.call_id,
-        voice,
-        phoneNumber,
-        message: `Test call initiated successfully with ${voice.name}`
+        call_sid: result.call_sid,
+        call_status: result.status,
+        voice: voice,
+        cost_estimation: costEstimation,
+        pricing_warning: pricingWarning,
+        message: `Test call initiated successfully${pricingWarning.shouldWarn ? ` (${pricingWarning.warning_message})` : ''}`
       };
 
     } catch (error) {
