@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, MessageCircle, Share2, Crown, Settings } from 'lucide-react';
+import { Users, UserPlus, MessageCircle, Share2, Crown, Settings, X } from 'lucide-react';
 
 const FlowCollaboration = ({ flowId, currentUser, onInvite, onShare }) => {
   const [collaborators, setCollaborators] = useState([

@@ -350,6 +350,18 @@ const dashboardApi = {
       };
     } catch (error) {
       console.error('Dashboard API error:', error);
+      // Return mock data for development when API is not ready
+      if (error.response?.status === 404) {
+        return {
+          data: {
+            totalCalls: 0,
+            activeCalls: 0,
+            successRate: 0,
+            avgDuration: 0,
+            aiInsights: {}
+          }
+        };
+      }
       throw error;
     }
   },
@@ -375,6 +387,15 @@ const dashboardApi = {
       };
     } catch (error) {
       console.error('Live calls API error:', error);
+      // Return mock data for development when API is not ready
+      if (error.response?.status === 404) {
+        return {
+          data: {
+            calls: [],
+            analysis: {}
+          }
+        };
+      }
       throw error;
     }
   },
@@ -400,6 +421,15 @@ const dashboardApi = {
       };
     } catch (error) {
       console.error('Campaigns API error:', error);
+      // Return mock data for development when API is not ready
+      if (error.response?.status === 404) {
+        return {
+          data: {
+            campaigns: [],
+            performance: {}
+          }
+        };
+      }
       throw error;
     }
   },
@@ -743,6 +773,7 @@ const omnichannelApi = {
 
 // Export all APIs
 export { 
+  SERVICE_URLS,
   apiService,
   dashboardApi, 
   campaignsApi, 

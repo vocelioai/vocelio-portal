@@ -26,6 +26,8 @@ import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalett
   import { migrateLegacyFlow, autoLayoutNodes, exportFlowToJSON } from '../lib/flowMigration';
   import { nodeTypes } from '../components/FlowNodes';
   import { railwayFlowAPI } from '../lib/railwayFlowAPI';
+  import { vocelioFlowAPI } from '../lib/vocelioFlowAPI';
+  import FLOW_DESIGNER_CONFIG from '../config/flowDesignerConfig';
   import ExecutionMonitor from '../components/ExecutionMonitor';
   import NodeTemplateBrowser from '../components/NodeTemplateBrowser';
   import FlowTemplateBrowser from '../components/FlowTemplateBrowser';
