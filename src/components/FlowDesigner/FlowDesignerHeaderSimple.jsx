@@ -26,15 +26,16 @@ const FlowDesignerHeaderSimple = ({
 }) => {
   const [showAllFunctions, setShowAllFunctions] = useState(false);
 
-  // TOP 6 PRIORITY FUNCTIONS + ALL OTHER FUNCTIONS - Complete list with dropdown access
+  // TOP 7 PRIORITY FUNCTIONS + ALL OTHER FUNCTIONS - Complete list with dropdown access
   const allFunctions = [
-    // TOP 6 PRIORITY FUNCTIONS
+    // TOP 7 PRIORITY FUNCTIONS
     { label: 'Send Call', icon: '📞', action: () => showModal('sendCall') },
     { label: 'Promote to Production', icon: '🚀', action: () => showModal('promoteProduction') },
     { label: 'Test Pathways', icon: '🧪', action: () => showModal('testPathway') },
     { label: 'Webclient', icon: '🌐', action: () => showModal('webClient') },
     { label: 'AI Optimizer', icon: '🧠', action: () => setAiOptimizerOpen(true) },
     { label: 'Node Library', icon: '📋', action: () => sidebarItems?.find(item => item.label === 'Node Library')?.action() },
+    { label: 'Global Prompt', icon: '🌍', action: () => showModal('globalPrompt') },
     
     // TEMPLATE & COLLABORATION FUNCTIONS (available in dropdown)
     { label: 'Flow Templates', icon: '🗂️', action: () => setFlowTemplateBrowserOpen(true) },
@@ -44,7 +45,6 @@ const FlowDesignerHeaderSimple = ({
     { label: 'Context Library', icon: '📚', action: () => sidebarItems?.find(item => item.label === 'Context Library')?.action() },
     
     // ESSENTIAL FUNCTIONS
-    { label: 'Global Prompt', icon: '🌍', action: () => showModal('globalPrompt') },
     { label: 'Production Manager', icon: '📊', action: () => sidebarItems?.find(item => item.label === 'Production Manager')?.action() },
     { label: 'Phone → Flow Setup', icon: '📞', action: () => sidebarItems?.find(item => item.label === 'Phone → Flow Setup')?.action() },
     { label: 'Flow Analytics', icon: '📊', action: () => setAnalyticsOpen(true) },
@@ -130,11 +130,11 @@ const FlowDesignerHeaderSimple = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Top 6 Priority Functions:
+              Top 7 Priority Functions:
             </span>
             
-            {/* Show the TOP 6 PRIORITY functions */}
-            {allFunctions.slice(0, 6).map((func, idx) => (
+            {/* Show the TOP 7 PRIORITY functions */}
+            {allFunctions.slice(0, 7).map((func, idx) => (
               <button
                 key={idx}
                 onClick={() => handleFunctionClick(func)}
