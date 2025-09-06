@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Volume2, 
   Play, 
@@ -47,6 +47,10 @@ const VoiceSelector = ({
   title = 'Voice Settings',
   description = ''
 }) => {
+  // Refs for audio management
+  const currentAudioRef = useRef(null);
+  const isUnmountedRef = useRef(false);
+
   const [previewLoading, setPreviewLoading] = useState(null);
   const [currentAudio, setCurrentAudio] = useState(null);
   const [customScript, setCustomScript] = useState('');
@@ -115,6 +119,55 @@ const VoiceSelector = ({
     }
   }, [selectedLanguage, mode]);
 
+  // Cleanup effect - Stop audio when component unmounts or user navigates away
+  useEffect(() => {
+    const stopCurrentAudio = () => {
+      if (currentAudioRef.current) {
+        console.log('🎵 Stopping audio due to navigation/unmount');
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+        currentAudioRef.current = null;
+        setCurrentAudio(null);
+        setPreviewLoading(null);
+        setPlayingVoice(null);
+      }
+    };
+
+    // Listen for navigation events
+    const handleBeforeUnload = () => {
+      stopCurrentAudio();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopCurrentAudio();
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup function for component unmount
+    return () => {
+      // Only set unmounted flag in cleanup
+      isUnmountedRef.current = true;
+      stopCurrentAudio();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []); // Empty dependency array ensures this only runs once
+
+  // Initialize unmounted ref as false
+  useEffect(() => {
+    isUnmountedRef.current = false;
+  }, []);
+
+  // Sync currentAudio state with ref for better cleanup
+  useEffect(() => {
+    currentAudioRef.current = currentAudio;
+  }, [currentAudio]);
+
   const loadVoicesFromAPI = async () => {
     try {
       setLoadingVoices(true);
@@ -171,72 +224,112 @@ const VoiceSelector = ({
 
   const handleVoicePreview = async (voiceId) => {
     try {
+      console.log('🎵 handleVoicePreview called with voiceId:', voiceId);
+      console.log('🎵 voiceService available:', !!voiceService);
+      console.log('🎵 voiceService.testVoice available:', !!voiceService?.testVoice);
+      
+      // Prevent new preview if component is unmounting
+      if (isUnmountedRef.current) {
+        console.log('🎵 Component unmounting, aborting preview');
+        return;
+      }
+
       // Enable audio context first
       if (onEnableAudio) {
+        console.log('🎵 Enabling audio context...');
         await onEnableAudio();
       }
       
       setPreviewLoading(voiceId);
       console.log('🎵 Starting voice preview for:', voiceId);
       
-      // Stop any currently playing audio
-      if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-        setCurrentAudio(null);
-      }
+      // Stop any currently playing audio immediately using our consolidated function
+      stopCurrentAudio();
+
+      // Set loading state for this voice only
+      setPreviewLoading(voiceId);
 
       // Use voiceService for preview
       const scriptText = customScript.trim() || defaultScript;
+      console.log('🎵 Script text:', scriptText);
+      console.log('🎵 Calling voiceService.testVoice...');
+      
       const result = await voiceService.testVoice(voiceId, scriptText, {
         speed: 1.0,
         pitch: 0,
         volume: 100
       });
 
+      console.log('🎵 Voice service result received:', result);
+      console.log('🎵 Result success:', result?.success);
+      console.log('🎵 Result error:', result?.error);
+      console.log('🎵 Result audioUrl:', result?.audioUrl);
+      
+      console.log('🎵 voiceService.testVoice result:', result);
+
+      // Check if component was unmounted during async operation
+      if (isUnmountedRef.current) {
+        if (result.success && result.audioUrl) {
+          URL.revokeObjectURL(result.audioUrl);
+        }
+        return;
+      }
+
       if (result.success) {
         // Create audio element with explicit user interaction handling
         const audio = new Audio();
         
         // Set up event listeners before setting src
-        audio.onloadstart = () => console.log('🎵 Audio loading started');
-        audio.oncanplay = () => console.log('🎵 Audio can play');
+        audio.onloadstart = () => console.log('🎵 Audio loading started for:', voiceId);
+        audio.oncanplay = () => console.log('🎵 Audio can play for:', voiceId);
         audio.onloadeddata = () => {
-          console.log('🎵 Audio loaded successfully, duration:', audio.duration);
+          console.log('🎵 Audio loaded successfully for:', voiceId, 'duration:', audio.duration);
         };
         
         audio.onended = () => {
-          console.log('🎵 Audio playback ended');
-          setPreviewLoading(null);
-          setCurrentAudio(null);
+          console.log('🎵 Audio playback ended for:', voiceId);
+          if (!isUnmountedRef.current) {
+            setPreviewLoading(null);
+            setPlayingVoice(null);
+            setCurrentAudio(null);
+            currentAudioRef.current = null;
+          }
           URL.revokeObjectURL(result.audioUrl); // Clean up blob URL
         };
           
         audio.onerror = (error) => {
-          console.error('🎵 Audio playback error:', error, audio.error);
-          setPreviewLoading(null);
-          setCurrentAudio(null);
+          console.error('🎵 Audio playback error for:', voiceId, error, audio.error);
+          if (!isUnmountedRef.current) {
+            setPreviewLoading(null);
+            setPlayingVoice(null);
+            setCurrentAudio(null);
+            currentAudioRef.current = null;
+          }
           URL.revokeObjectURL(result.audioUrl); // Clean up blob URL
         };
 
         // Set the audio source
         audio.src = result.audioUrl;
         setCurrentAudio(audio);
+        currentAudioRef.current = audio;
         
         // Load the audio
         audio.load();
         
-        console.log('🎵 Starting audio playback...');
+        console.log('🎵 Starting audio playback for:', voiceId);
         
         // Try to play with proper error handling
         try {
           const playPromise = audio.play();
           if (playPromise !== undefined) {
             await playPromise;
-            console.log('🎵 Audio play() called successfully');
+            console.log('🎵 Audio play() called successfully for:', voiceId);
+            // Set playing state only after successful play
+            setPlayingVoice(voiceId);
+            setPreviewLoading(null); // Clear loading state
           }
         } catch (playError) {
-          console.error('🎵 Play promise rejected:', playError);
+          console.error('🎵 Play promise rejected for:', voiceId, playError);
           if (playError.name === 'NotAllowedError') {
             console.log('🎵 Audio blocked by browser - user interaction required');
           }
@@ -247,10 +340,73 @@ const VoiceSelector = ({
       }
       
     } catch (error) {
-      console.error('❌ Voice preview error:', error);
-      setPreviewLoading(null);
-      alert('Voice preview failed: ' + error.message);
+      console.error('❌ Voice preview error for:', voiceId, error);
+      console.error('❌ Full error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      if (!isUnmountedRef.current) {
+        setPreviewLoading(null);
+        setPlayingVoice(null);
+        setCurrentAudio(null);
+        currentAudioRef.current = null;
+      }
+      
+      // Better error messages for different error types
+      let errorMessage = 'Voice preview failed';
+      if (error.message.includes('401') || error.message.includes('403')) {
+        errorMessage = 'Authentication required. Please sign in to preview voices.';
+      } else if (error.message.includes('Voice not found')) {
+        errorMessage = 'Voice not available. Please try another voice.';
+      } else if (error.message.includes('Network')) {
+        errorMessage = 'Network error. Please check your connection.';
+      } else if (error.message) {
+        errorMessage = `Voice preview failed: ${error.message}`;
+      }
+      
+      alert(errorMessage);
     }
+  };
+
+  // Stop current audio playback manually
+  const stopCurrentAudio = () => {
+    console.log('🎵 Attempting to stop current audio...');
+    console.log('🎵 currentAudio state:', !!currentAudio);
+    console.log('🎵 currentAudioRef.current:', !!currentAudioRef.current);
+    
+    // Stop audio from state
+    if (currentAudio) {
+      console.log('🎵 Stopping audio from state');
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      
+      // Clean up blob URL if exists
+      if (currentAudio.src && currentAudio.src.startsWith('blob:')) {
+        URL.revokeObjectURL(currentAudio.src);
+      }
+    }
+    
+    // Stop audio from ref (backup)
+    if (currentAudioRef.current && currentAudioRef.current !== currentAudio) {
+      console.log('🎵 Stopping audio from ref');
+      currentAudioRef.current.pause();
+      currentAudioRef.current.currentTime = 0;
+      
+      // Clean up blob URL if exists
+      if (currentAudioRef.current.src && currentAudioRef.current.src.startsWith('blob:')) {
+        URL.revokeObjectURL(currentAudioRef.current.src);
+      }
+    }
+    
+    // Clear all states
+    setCurrentAudio(null);
+    setPreviewLoading(null);
+    setPlayingVoice(null);
+    currentAudioRef.current = null;
+    
+    console.log('🎵 Audio stop completed');
   };
 
   // =============================================================================
@@ -308,12 +464,7 @@ const VoiceSelector = ({
   };
 
   const stopPreview = () => {
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      setCurrentAudio(null);
-      setPreviewLoading(null);
-    }
+    stopCurrentAudio();
   };
 
   // =============================================================================
@@ -737,7 +888,7 @@ const VoiceSelector = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (previewLoading === voice.id) {
+                        if (playingVoice === voice.id || previewLoading === voice.id) {
                           stopPreview();
                         } else {
                           handleVoicePreview(voice.id);
@@ -747,6 +898,8 @@ const VoiceSelector = ({
                       className="p-2 text-gray-500 hover:text-gray-700 hover:bg-white rounded-lg transition-colors disabled:opacity-50"
                     >
                       {previewLoading === voice.id ? (
+                        <Loader className="h-4 w-4 animate-spin" />
+                      ) : playingVoice === voice.id ? (
                         <Pause className="h-4 w-4" />
                       ) : (
                         <Play className="h-4 w-4" />

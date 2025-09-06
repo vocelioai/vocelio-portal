@@ -47,7 +47,7 @@ class VoiceService {
       const response = await fetch(`${this.ttsAdapterUrl}/tiers`, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          'Authorization': `Bearer ${localStorage.getItem('vocilio_auth_token') || localStorage.getItem('auth_token') || ''}`
         },
         timeout: 10000
       });
@@ -200,19 +200,21 @@ class VoiceService {
       // Process regular voices (Azure)
       if (regularVoices.status === 'fulfilled') {
         this.regularVoices = regularVoices.value;
-        console.log(`✅ Loaded ${this.regularVoices.length} Azure regular voices`);
+        console.log(`✅ Loaded ${this.regularVoices.length} Azure regular voices from API`);
       } else {
-        console.warn('⚠️ Failed to load Azure voices:', regularVoices.reason);
-        this.regularVoices = this.getFallbackRegularVoices();
+        console.error('❌ Failed to load Azure voices from API:', regularVoices.reason);
+        this.regularVoices = [];
+        // No fallback - require real API connection
       }
 
       // Process premium voices (ElevenLabs)
       if (premiumVoices.status === 'fulfilled') {
         this.premiumVoices = premiumVoices.value;
-        console.log(`✅ Loaded ${this.premiumVoices.length} ElevenLabs premium voices`);
+        console.log(`✅ Loaded ${this.premiumVoices.length} ElevenLabs premium voices from API`);
       } else {
-        console.warn('⚠️ Failed to load ElevenLabs voices:', premiumVoices.reason);
-        this.premiumVoices = this.getFallbackPremiumVoices();
+        console.error('❌ Failed to load ElevenLabs voices from API:', premiumVoices.reason);
+        this.premiumVoices = [];
+        // No fallback - require real API connection
       }
 
       this.loadedVoices = true;
@@ -233,16 +235,17 @@ class VoiceService {
       return result;
 
     } catch (error) {
-      console.error('❌ Error loading voices:', error);
+      console.error('❌ Error loading voices from APIs:', error);
       
-      // Return fallback voices with pricing
-      this.regularVoices = this.getFallbackRegularVoices();
-      this.premiumVoices = this.getFallbackPremiumVoices();
+      // Don't use fallback voices - require real API connection
+      this.regularVoices = [];
+      this.premiumVoices = [];
       
       return {
-        regular: this.regularVoices,
-        premium: this.premiumVoices,
-        pricing: this.pricingTiers
+        regular: [],
+        premium: [],
+        pricing: this.pricingTiers,
+        error: 'Failed to connect to voice APIs. Please check your connection and authentication.'
       };
     } finally {
       this.isLoading = false;
@@ -381,91 +384,7 @@ class VoiceService {
   }
 
   // =============================================================================
-  // 🎭 FALLBACK VOICES
-  // =============================================================================
-
-  getFallbackRegularVoices() {
-    return [
-      {
-        id: 'en-US-AriaNeural',
-        name: 'Aria (Natural)',
-        language: 'en-US',
-        gender: 'female',
-        tier: 'regular',
-        provider: 'azure',
-        neural: true,
-        description: 'Aria - Natural female voice'
-      },
-      {
-        id: 'en-US-DavisNeural',
-        name: 'Davis (Natural)',
-        language: 'en-US',
-        gender: 'male',
-        tier: 'regular',
-        provider: 'azure',
-        neural: true,
-        description: 'Davis - Natural male voice'
-      },
-      {
-        id: 'en-US-JennyNeural',
-        name: 'Jenny (Friendly)',
-        language: 'en-US',
-        gender: 'female',
-        tier: 'regular',
-        provider: 'azure',
-        neural: true,
-        description: 'Jenny - Friendly female voice'
-      },
-      {
-        id: 'en-US-GuyNeural',
-        name: 'Guy (Professional)',
-        language: 'en-US',
-        gender: 'male',
-        tier: 'regular',
-        provider: 'azure',
-        neural: true,
-        description: 'Guy - Professional male voice'
-      }
-    ];
-  }
-
-  getFallbackPremiumVoices() {
-    return [
-      {
-        id: 'EXAVITQu4vr4xnSDxMaL',
-        name: 'Bella (Premium)',
-        language: 'en-US',
-        gender: 'female',
-        tier: 'premium',
-        provider: 'elevenlabs',
-        category: 'conversational',
-        description: 'Bella - Premium conversational voice'
-      },
-      {
-        id: 'VR6AewLTigWG4xSOukaG',
-        name: 'Adam (Premium)',
-        language: 'en-US',
-        gender: 'male',
-        tier: 'premium',
-        provider: 'elevenlabs',
-        category: 'narrative',
-        description: 'Adam - Premium narrative voice'
-      },
-      {
-        id: 'pNInz6obpgDQGcFmaJgB',
-        name: 'Antoni (Premium)',
-        language: 'en-US',
-        gender: 'male',
-        tier: 'premium',
-        provider: 'elevenlabs',
-        category: 'professional',
-        description: 'Antoni - Premium professional voice'
-      }
-    ];
-  }
-
-  // =============================================================================
-  // 🎯 VOICE TESTING & PREVIEW
+  //  VOICE TESTING & PREVIEW
   // =============================================================================
 
   /**
@@ -494,17 +413,34 @@ class VoiceService {
       };
 
       // Use the synthesize endpoint
+      const authToken = localStorage.getItem('vocilio_auth_token') || 
+                       localStorage.getItem('auth_token') || 
+                       sessionStorage.getItem('vocilio_session_token');
+      console.log('🎵 Using auth token for voice test:', authToken ? 'Token available' : 'No token - authentication required');
+      
       const response = await fetch(`${this.ttsAdapterUrl}/synthesize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
+          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
         },
         body: JSON.stringify(testOptions)
       });
 
+      console.log('🎵 TTS adapter response status:', response.status);
+      console.log('🎵 TTS adapter response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error(`Voice test failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('🎵 TTS adapter error response:', errorText);
+        
+        if (response.status === 401) {
+          throw new Error('Authentication required. Please log in to test voices.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. Please check your permissions.');
+        } else {
+          throw new Error(`Voice test failed: ${response.status} - ${errorText}`);
+        }
       }
 
       // Return audio blob for playback
