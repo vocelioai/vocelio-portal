@@ -283,8 +283,14 @@ class ContextAPI {
   // =============================================================================
 
   setupRealtimeSync(callbacks = {}) {
+    // Check if WebSocket URL is configured
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    if (!wsUrl) {
+      console.log('⚠️ WebSocket URL not configured - real-time sync disabled');
+      return null;
+    }
+
     // WebSocket connection for real-time updates
-    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://api.vocelio.ai/ws';
     const ws = new WebSocket(`${wsUrl}?teamId=${this.teamId}&userId=${this.userId}`);
 
     ws.onopen = () => {
@@ -305,10 +311,17 @@ class ContextAPI {
       console.log('🔌 Real-time sync disconnected');
       callbacks.onDisconnect?.();
       
-      // Attempt to reconnect after 5 seconds
-      setTimeout(() => {
-        this.setupRealtimeSync(callbacks);
-      }, 5000);
+      // Only attempt to reconnect if WebSocket URL is still configured
+      if (import.meta.env.VITE_WS_URL) {
+        setTimeout(() => {
+          this.setupRealtimeSync(callbacks);
+        }, 5000);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.warn('WebSocket connection error:', error);
+      // Don't show errors if URL is not configured
     };
 
     return ws;

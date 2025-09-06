@@ -1476,8 +1476,15 @@ Your goal is to establish credibility and guide interactions with confident expe
     return null;
   }, [workflowContexts, contextUsageData, showNotification]);
 
-  // Real-time Collaboration Setup
+  // Real-time Collaboration Setup (Optional)
   useEffect(() => {
+    // Only setup real-time connection if WebSocket URL is configured
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    if (!wsUrl) {
+      console.log('⚠️ WebSocket URL not configured - skipping real-time sync');
+      return;
+    }
+
     // Setup real-time connection for team collaboration
     const ws = contextAPI.setupRealtimeSync({
       onConnect: () => {
@@ -1486,7 +1493,10 @@ Your goal is to establish credibility and guide interactions with confident expe
       },
       onDisconnect: () => {
         setRealtimeConnection(null);
-        showNotification('🔌 Disconnected from team workspace', 'warning');
+        // Only show warning if we actually had a connection
+        if (realtimeConnection) {
+          showNotification('🔌 Disconnected from team workspace', 'warning');
+        }
       },
       onGlobalPromptUpdate: (data) => {
         setGlobalPrompt(data.prompt);
