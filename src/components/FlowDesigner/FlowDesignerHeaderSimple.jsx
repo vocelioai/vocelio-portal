@@ -80,37 +80,9 @@ const FlowDesignerHeaderSimple = ({
 
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b shadow-lg`}>
-      {/* Top Row - Project Info */}
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white text-sm">
-              V
-            </div>
-            <div>
-              <h1 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                Flow Designer
-              </h1>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
-              Version 1
-            </span>
-            <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-              Staging
-            </span>
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium animate-pulse">
-              ✓ Saved
-            </span>
-          </div>
-        </div>
-
+      {/* Top Row - Actions */}
+      <div className="flex items-center justify-end px-6 py-3">
         <div className="flex items-center gap-3">
-          <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-            {allFunctions.length} Functions Available
-          </span>
           <button
             onClick={copyId}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -129,10 +101,6 @@ const FlowDesignerHeaderSimple = ({
       <div className={`px-6 py-4 ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-gray-50 border-gray-200'} border-t`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Top 7 Priority Functions:
-            </span>
-            
             {/* Show the TOP 7 PRIORITY functions */}
             {allFunctions.slice(0, 7).map((func, idx) => (
               <button
