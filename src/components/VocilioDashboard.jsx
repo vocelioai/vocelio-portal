@@ -34,6 +34,9 @@ import PhoneNumberPurchasePage from './PhoneNumberPurchasePage';
 // Import world-class call center component
 import CallCenterPage from './CallCenterPage';
 
+// Import enhanced Voices section
+import VoicesSection from './VoicesSection';
+
 // Enhanced Utility Components with AI Integration
 const EnhancedStatCard = ({ title, value, icon: Icon, color, prediction, trend }) => {
   const colorClasses = {
@@ -1044,7 +1047,7 @@ const VocilioDashboard = () => {
         { id: 'phone-numbers', label: 'Phone Numbers' },
         { id: 'voice-settings', label: 'Call Center' },
         { id: 'call-flows', label: 'Call Flows' },
-        { id: 'test-calls', label: 'Test Calls' }
+        { id: 'voices', label: 'Voices' }
       ]
     },
     { 
@@ -1142,6 +1145,8 @@ const VocilioDashboard = () => {
         return <VoiceSettingsSection />;
       case 'call-flows':
         return <CallFlowsSection />;
+      case 'voices':
+        return <VoicesSection />;
       case 'contacts':
       case 'contact-lists':
         return <ContactsSection />;
