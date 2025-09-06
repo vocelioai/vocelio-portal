@@ -17,6 +17,8 @@ import {
 
 // Import extracted components
 import FlowDesignerHeader from './FlowDesigner/FlowDesignerHeader';
+import ProgressiveDisclosureHeader from './FlowDesigner/ProgressiveDisclosureHeader';
+import FlowDesignerHeaderSimple from './FlowDesigner/FlowDesignerHeaderSimple';
 import FlowDesignerCanvasControls from './FlowDesigner/FlowDesignerCanvasControls';
 import FlowDesignerNotifications from './FlowDesigner/FlowDesignerNotifications';
 import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalette';
@@ -1635,8 +1637,8 @@ Your goal is to establish credibility and guide interactions with confident expe
       {/* Notifications */}
       <FlowDesignerNotifications notifications={notifications} />
 
-      {/* Header with integrated sidebar functionality */}
-      <FlowDesignerHeader
+      {/* Header with Simple, Reliable Design */}
+      <FlowDesignerHeaderSimple
         isDarkMode={isDarkMode}
         copyId={copyId}
         showModal={showModal}
