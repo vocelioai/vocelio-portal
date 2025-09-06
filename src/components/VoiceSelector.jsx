@@ -1,8 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, Play, Pause, Loader, RefreshCw, Star, Crown, Phone, DollarSign, AlertTriangle } from 'lucide-react';
+import { 
+  Volume2, 
+  Play, 
+  Pause, 
+  Loader, 
+  RefreshCw, 
+  Star, 
+  Crown, 
+  Phone, 
+  DollarSign, 
+  AlertTriangle,
+  Mic2,
+  Zap,
+  Clock,
+  Globe,
+  Copy,
+  Check,
+  Loader2
+} from 'lucide-react';
 import { voiceService } from '../lib/voiceService';
 
 const VoiceSelector = ({ 
+  // Legacy props for backward compatibility
   voiceTier, 
   setVoiceTier, 
   selectedVoice, 
@@ -12,7 +31,22 @@ const VoiceSelector = ({
   isLoading,
   onEnableAudio,
   showTestCall = false,
-  testPhoneNumber = ""
+  testPhoneNumber = "",
+  
+  // New enhanced props
+  mode = 'grid', // 'grid' (default), 'gallery', 'list'
+  multiSelect = false,
+  showAudioPreview = true,
+  showLanguageFilter = false,
+  showRefresh = false,
+  showTierSelection = true,
+  showCustomScript = false,
+  maxSelection = 1,
+  className = '',
+  onVoiceSelect,
+  onVoicesSelect, // For multi-selection
+  title = 'Voice Settings',
+  description = ''
 }) => {
   const [previewLoading, setPreviewLoading] = useState(null);
   const [currentAudio, setCurrentAudio] = useState(null);
@@ -23,6 +57,46 @@ const VoiceSelector = ({
   const [pricingInfo, setPricingInfo] = useState(null);
   const [showPricingWarning, setShowPricingWarning] = useState(false);
   const [costEstimation, setCostEstimation] = useState(null);
+
+  // Enhanced state for new features
+  const [selectedLanguage, setSelectedLanguage] = useState('en-US');
+  const [playingVoice, setPlayingVoice] = useState(null);
+  const [copiedScript, setCopiedScript] = useState(false);
+  const [refreshSuccess, setRefreshSuccess] = useState(false);
+  const [selectedVoices, setSelectedVoices] = useState([]); // For multi-select
+  const [error, setError] = useState(null);
+
+  // Language options for multi-language support
+  const languages = [
+    { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
+    { code: 'en-GB', name: 'English (UK)', flag: '🇬🇧' },
+    { code: 'es-ES', name: 'Spanish (Spain)', flag: '🇪🇸' },
+    { code: 'es-MX', name: 'Spanish (Mexico)', flag: '🇲🇽' },
+    { code: 'fr-FR', name: 'French', flag: '🇫🇷' },
+    { code: 'de-DE', name: 'German', flag: '🇩🇪' },
+    { code: 'it-IT', name: 'Italian', flag: '🇮🇹' },
+    { code: 'pt-BR', name: 'Portuguese (Brazil)', flag: '🇧🇷' },
+    { code: 'ja-JP', name: 'Japanese', flag: '🇯🇵' },
+    { code: 'ko-KR', name: 'Korean', flag: '🇰🇷' },
+    { code: 'zh-CN', name: 'Chinese (Mandarin)', flag: '🇨🇳' },
+    { code: 'hi-IN', name: 'Hindi', flag: '🇮🇳' }
+  ];
+
+  // Sample scripts for different languages
+  const sampleScripts = {
+    'en-US': 'Hello! Welcome to Vocelio AI. This is a sample voice demonstration to help you choose the perfect voice for your flows.',
+    'en-GB': 'Hello! Welcome to Vocelio AI. This is a sample voice demonstration to help you choose the perfect voice for your flows.',
+    'es-ES': '¡Hola! Bienvenido a Vocelio AI. Esta es una demostración de voz de muestra para ayudarte a elegir la voz perfecta para tus flujos.',
+    'es-MX': '¡Hola! Bienvenido a Vocelio AI. Esta es una demostración de voz de muestra para ayudarte a elegir la voz perfecta para tus flujos.',
+    'fr-FR': 'Bonjour ! Bienvenue chez Vocelio AI. Ceci est une démonstration vocale pour vous aider à choisir la voix parfaite pour vos flux.',
+    'de-DE': 'Hallo! Willkommen bei Vocelio AI. Dies ist eine Stimmdemonstration, um Ihnen bei der Auswahl der perfekten Stimme für Ihre Flows zu helfen.',
+    'it-IT': 'Ciao! Benvenuto in Vocelio AI. Questa è una dimostrazione vocale per aiutarti a scegliere la voce perfetta per i tuoi flussi.',
+    'pt-BR': 'Olá! Bem-vindo ao Vocelio AI. Esta é uma demonstração de voz para ajudá-lo a escolher a voz perfeita para seus fluxos.',
+    'ja-JP': 'こんにちは！Vocelio AIへようこそ。これは、フローに最適な音声を選択するのに役立つサンプル音声デモンストレーションです。',
+    'ko-KR': '안녕하세요! Vocelio AI에 오신 것을 환영합니다. 이것은 플로우에 완벽한 음성을 선택하는 데 도움이 되는 샘플 음성 데모입니다.',
+    'zh-CN': '您好！欢迎来到Vocelio AI。这是一个语音演示样本，帮助您为流程选择完美的声音。',
+    'hi-IN': 'नमस्ते! Vocelio AI में आपका स्वागत है। यह आपके फ्लो के लिए सही आवाज़ चुनने में मदद करने के लिए एक नमूना आवाज़ प्रदर्शन है।'
+  };
 
   const defaultScript = "Hello! This is a preview of this voice. How do I sound?";
   const maxScriptLength = 500;
@@ -35,10 +109,24 @@ const VoiceSelector = ({
     loadVoicesFromAPI();
   }, []);
 
+  // Update script when language changes (for gallery mode)
+  useEffect(() => {
+    if (mode === 'gallery' && sampleScripts[selectedLanguage]) {
+      setCustomScript(sampleScripts[selectedLanguage]);
+    }
+  }, [selectedLanguage, mode]);
+
   const loadVoicesFromAPI = async () => {
     try {
       setLoadingVoices(true);
+      setError(null);
       console.log('🎤 Loading voices from TTS APIs...');
+      
+      // Check if voiceService methods exist
+      if (!voiceService || typeof voiceService.loadAllVoices !== 'function') {
+        console.error('❌ Voice service not properly initialized');
+        throw new Error('Voice service not available');
+      }
       
       const voicesData = await voiceService.loadAllVoices();
       setVoicesFromAPI(voicesData);
@@ -49,16 +137,23 @@ const VoiceSelector = ({
         console.log('💰 Pricing info loaded:', voicesData.pricing);
       }
       
-      console.log('✅ Loaded voices:', voicesData);
+      console.log('✅ Voices loaded successfully:', {
+        regular: voicesData.regular?.length || 0,
+        premium: voicesData.premium?.length || 0
+      });
       
-      // Auto-select first voice if none selected
-      const tierVoices = voiceTier === 'premium' ? voicesData.premium : voicesData.regular;
-      if (!selectedVoice && tierVoices.length > 0) {
-        setSelectedVoice(tierVoices[0].id);
+      // Auto-select first voice if none selected and not in multi-select mode
+      if (!multiSelect) {
+        const tierVoices = voiceTier === 'premium' ? voicesData.premium : voicesData.regular;
+        if (!selectedVoice && tierVoices.length > 0) {
+          setSelectedVoice(tierVoices[0].id);
+        }
       }
       
     } catch (error) {
-      console.error('❌ Failed to load voices from API:', error);
+      console.error('❌ Error loading voices:', error);
+      setError(error.message || 'Failed to load voices');
+      setVoicesFromAPI({ regular: [], premium: [] });
     } finally {
       setLoadingVoices(false);
     }
@@ -66,8 +161,13 @@ const VoiceSelector = ({
 
   // Get current voices based on tier (prioritize API voices over passed props)
   const getCurrentVoices = () => {
-    const apiVoices = voiceTier === 'premium' ? voicesFromAPI.premium : voicesFromAPI.regular;
-    return apiVoices.length > 0 ? apiVoices : availableVoices;
+    // Ensure we have proper arrays
+    const voicesData = voicesFromAPI || { regular: [], premium: [] };
+    const apiVoices = voiceTier === 'premium' ? voicesData.premium : voicesData.regular;
+    const fallbackVoices = availableVoices || [];
+    
+    // Return API voices if available, otherwise fallback
+    return (apiVoices && apiVoices.length > 0) ? apiVoices : fallbackVoices;
   };
 
   const handleVoicePreview = async (voiceId) => {
@@ -151,6 +251,52 @@ const VoiceSelector = ({
       console.error('❌ Voice preview error:', error);
       setPreviewLoading(null);
       alert('Voice preview failed: ' + error.message);
+    }
+  };
+
+  // =============================================================================
+  // 🔄 REFRESH & UTILITY FUNCTIONS  
+  // =============================================================================
+
+  const handleRefresh = async () => {
+    setRefreshSuccess(false);
+    await loadVoicesFromAPI();
+    setRefreshSuccess(true);
+    setTimeout(() => setRefreshSuccess(false), 2000);
+  };
+
+  const handleCopyScript = async () => {
+    try {
+      await navigator.clipboard.writeText(customScript);
+      setCopiedScript(true);
+      setTimeout(() => setCopiedScript(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy script:', error);
+    }
+  };
+
+  const handleVoiceSelection = (voice) => {
+    if (multiSelect) {
+      const isSelected = selectedVoices.some(v => v.id === voice.id);
+      let newSelection;
+      
+      if (isSelected) {
+        newSelection = selectedVoices.filter(v => v.id !== voice.id);
+      } else if (selectedVoices.length < maxSelection) {
+        newSelection = [...selectedVoices, voice];
+      } else {
+        return; // Max selection reached
+      }
+      
+      setSelectedVoices(newSelection);
+      if (onVoicesSelect) {
+        onVoicesSelect(newSelection);
+      }
+    } else {
+      setSelectedVoice(voice.id);
+      if (onVoiceSelect) {
+        onVoiceSelect(voice);
+      }
     }
   };
 
@@ -324,18 +470,48 @@ const VoiceSelector = ({
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Voice Settings</h3>
+    <div className={`bg-white rounded-xl border border-gray-200 ${mode === 'gallery' ? 'p-8' : 'p-6'} ${className}`}>
+      {/* Header Section */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className={`font-semibold text-gray-900 ${mode === 'gallery' ? 'text-2xl' : 'text-lg'}`}>
+            {title}
+          </h3>
+          {description && (
+            <p className="text-gray-600 mt-1">{description}</p>
+          )}
+        </div>
+        
         <div className="flex items-center space-x-2">
-          <button
-            onClick={loadVoicesFromAPI}
-            disabled={loadingVoices}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Refresh voices from APIs"
-          >
-            <RefreshCw className={`h-4 w-4 ${loadingVoices ? 'animate-spin' : ''}`} />
-          </button>
+          {/* Refresh Button */}
+          {(showRefresh || mode === 'gallery') && (
+            <button
+              onClick={handleRefresh}
+              disabled={loadingVoices}
+              className={`p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${
+                refreshSuccess ? 'text-green-600 bg-green-50' : ''
+              }`}
+              title="Refresh voices from APIs"
+            >
+              {refreshSuccess ? (
+                <Check className="h-4 w-4" />
+              ) : (
+                <RefreshCw className={`h-4 w-4 ${loadingVoices ? 'animate-spin' : ''}`} />
+              )}
+            </button>
+          )}
+          
+          {/* Existing buttons for backward compatibility */}
+          {mode === 'grid' && (
+            <button
+              onClick={loadVoicesFromAPI}
+              disabled={loadingVoices}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Refresh voices from APIs"
+            >
+              <RefreshCw className={`h-4 w-4 ${loadingVoices ? 'animate-spin' : ''}`} />
+            </button>
+          )}
           <button
             onClick={onLoadVoices}
             disabled={isLoading}
@@ -347,57 +523,128 @@ const VoiceSelector = ({
         </div>
       </div>
 
+      {/* Language Filter (Gallery Mode) */}
+      {(showLanguageFilter || mode === 'gallery') && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            <Globe className="inline h-4 w-4 mr-1" />
+            Language Selection
+          </label>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                onClick={() => setSelectedLanguage(lang.code)}
+                className={`p-2 border rounded-lg text-center transition-all text-xs ${
+                  selectedLanguage === lang.code
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  <span>{lang.flag}</span>
+                  <span className="font-medium">{lang.name}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Script Section (Gallery Mode) */}
+      {(showCustomScript || mode === 'gallery') && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            <Mic2 className="inline h-4 w-4 mr-1" />
+            Custom Script for Voice Testing
+          </label>
+          <div className="relative">
+            <textarea
+              value={customScript}
+              onChange={(e) => setCustomScript(e.target.value.slice(0, 500))}
+              placeholder="Enter your custom script here..."
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              maxLength={500}
+            />
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-gray-500">
+                {customScript.length}/500 characters
+              </span>
+              <button
+                onClick={handleCopyScript}
+                className="flex items-center gap-1 px-3 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+              >
+                {copiedScript ? (
+                  <>
+                    <Check className="h-3 w-3" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tier Selection */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Voice Tier
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            onClick={() => handleTierChange('regular')}
-            className={`p-3 border rounded-lg text-center transition-all ${
-              voiceTier === 'regular'
+      {showTierSelection && (
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Voice Tier
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handleTierChange('regular')}
+              className={`p-3 border rounded-lg text-center transition-all ${
+                voiceTier === 'regular'
                 ? 'border-blue-500 bg-blue-50 text-blue-700'
                 : 'border-gray-200 bg-white hover:bg-gray-50'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Star className="h-4 w-4" />
-              <span className="font-medium">Regular</span>
-            </div>
-            <div className="text-xs text-gray-500">
-              Azure TTS ({voicesFromAPI.regular.length} voices)
-            </div>
-            {pricingInfo?.regular && (
-              <div className="text-xs font-medium text-green-600 mt-1">
-                ${pricingInfo.regular.price_per_minute.toFixed(3)}/min
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Star className="h-4 w-4" />
+                <span className="font-medium">Regular</span>
               </div>
-            )}
-          </button>
-          
-          <button
-            onClick={() => handleTierChange('premium')}
-            className={`p-3 border rounded-lg text-center transition-all ${
-              voiceTier === 'premium'
-                ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
-                : 'border-gray-200 bg-white hover:bg-gray-50'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Crown className="h-4 w-4" />
-              <span className="font-medium">Premium</span>
-            </div>
-            <div className="text-xs text-gray-500">
-              ElevenLabs ({voicesFromAPI.premium.length} voices)
-            </div>
-            {pricingInfo?.premium && (
-              <div className="text-xs font-medium text-amber-600 mt-1">
-                ${pricingInfo.premium.price_per_minute.toFixed(3)}/min
+              <div className="text-xs text-gray-500">
+                Azure TTS ({voicesFromAPI.regular?.length || 0} voices)
               </div>
-            )}
-          </button>
+              {pricingInfo?.regular && (
+                <div className="text-xs font-medium text-green-600 mt-1">
+                  ${pricingInfo.regular.price_per_minute.toFixed(3)}/min
+                </div>
+              )}
+            </button>
+            
+            <button
+              onClick={() => handleTierChange('premium')}
+              className={`p-3 border rounded-lg text-center transition-all ${
+                voiceTier === 'premium'
+                  ? 'border-yellow-500 bg-yellow-50 text-yellow-700'
+                  : 'border-gray-200 bg-white hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Crown className="h-4 w-4" />
+                <span className="font-medium">Premium</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                ElevenLabs ({voicesFromAPI.premium?.length || 0} voices)
+              </div>
+              {pricingInfo?.premium && (
+                <div className="text-xs font-medium text-amber-600 mt-1">
+                  ${pricingInfo.premium.price_per_minute.toFixed(3)}/min
+                </div>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Pricing Warning for Premium Tier */}
       {showPricingWarning && voiceTier === 'premium' && costEstimation && (
@@ -473,7 +720,7 @@ const VoiceSelector = ({
       {/* Voice Selection */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Available Voices ({getCurrentVoices().length})
+          Available Voices ({getCurrentVoices()?.length || 0})
         </label>
         
         {(isLoading || loadingVoices) ? (
@@ -481,13 +728,13 @@ const VoiceSelector = ({
             <Loader className="h-6 w-6 animate-spin text-blue-600" />
             <span className="ml-2 text-gray-600">Loading voices...</span>
           </div>
-        ) : getCurrentVoices().length === 0 ? (
+        ) : getCurrentVoices()?.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No voices available for {voiceTier} tier
           </div>
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto">
-            {getCurrentVoices().map((voice) => (
+            {(getCurrentVoices() || []).map((voice) => (
               <div
                 key={voice.id}
                 className={`border rounded-lg p-3 transition-all cursor-pointer ${

@@ -35,7 +35,7 @@ import PhoneNumberPurchasePage from './PhoneNumberPurchasePage';
 import CallCenterPage from './CallCenterPage';
 
 // Import enhanced Voices section
-import VoicesSection from './VoicesSection';
+import VoicesPageNew from './VoicesPageNew';
 
 // Enhanced Utility Components with AI Integration
 const EnhancedStatCard = ({ title, value, icon: Icon, color, prediction, trend }) => {
@@ -1146,7 +1146,7 @@ const VocilioDashboard = () => {
       case 'call-flows':
         return <CallFlowsSection />;
       case 'voices':
-        return <VoicesSection />;
+        return <VoicesPageNew />;
       case 'contacts':
       case 'contact-lists':
         return <ContactsSection />;
