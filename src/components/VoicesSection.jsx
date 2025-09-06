@@ -114,7 +114,9 @@ const VoicesSection = () => {
           { id: 'fable', name: 'Fable', provider: 'azure', gender: 'female', accent: 'UK' },
           { id: 'onyx', name: 'Onyx', provider: 'azure', gender: 'male', accent: 'US' },
           { id: 'nova', name: 'Nova', provider: 'azure', gender: 'female', accent: 'US' },
-          { id: 'shimmer', name: 'Shimmer', provider: 'azure', gender: 'female', accent: 'US' }
+          { id: 'shimmer', name: 'Shimmer', provider: 'azure', gender: 'female', accent: 'US' },
+          { id: 'guy', name: 'Guy', provider: 'azure', gender: 'male', accent: 'US' },
+          { id: 'jane', name: 'Jane', provider: 'azure', gender: 'female', accent: 'US' }
         ],
         premium: [
           { id: 'charlotte', name: 'Charlotte', provider: 'elevenlabs', gender: 'female', accent: 'US' },
@@ -262,6 +264,74 @@ const VoicesSection = () => {
     return tier === 'premium' 
       ? { price: '$0.35', provider: 'ElevenLabs', quality: 'Ultra-High', features: ['Natural inflection', 'Emotional range', 'Custom voices'] }
       : { price: '$0.08', provider: 'Azure TTS', quality: 'High', features: ['Clear speech', 'Multiple accents', 'Reliable'] };
+  };
+
+  // Professional voice description mapping
+  const getVoiceDescription = (voice) => {
+    // Map accents to user-friendly descriptions
+    const accentMap = {
+      'US': 'American',
+      'UK': 'British', 
+      'AU': 'Australian',
+      'CA': 'Canadian',
+      'IE': 'Irish',
+      'ZA': 'South African',
+      'en-US': 'American',
+      'en-GB': 'British',
+      'en-AU': 'Australian'
+    };
+
+    // Map genders to professional descriptions
+    const genderMap = {
+      'female': 'Female',
+      'male': 'Male', 
+      'neutral': 'Neutral'
+    };
+
+    // Voice-specific characteristics for premium experience
+    const voiceCharacteristics = {
+      // Regular voices
+      'alloy': 'Clear',
+      'echo': 'Deep', 
+      'fable': 'Warm',
+      'onyx': 'Confident',
+      'nova': 'Friendly',
+      'shimmer': 'Bright',
+      'guy': 'Professional',
+      'jane': 'Natural',
+      'aria': 'Elegant',
+      'davis': 'Authoritative',
+      'jason': 'Reliable',
+      'jenny': 'Smooth',
+      
+      // Premium voices  
+      'charlotte': 'Sophisticated',
+      'daniel': 'Distinguished',
+      'lily': 'Expressive', 
+      'giovanni': 'Dynamic',
+      'rachel': 'Captivating',
+      'drew': 'Compelling',
+      'clyde': 'Rich',
+      'bella': 'Melodic'
+    };
+
+    // Get user-friendly accent
+    let accent = '';
+    if (voice.accent && accentMap[voice.accent]) {
+      accent = accentMap[voice.accent];
+    } else if (voice.language && accentMap[voice.language]) {
+      accent = accentMap[voice.language];
+    } else if (voiceCharacteristics[voice.id.toLowerCase()]) {
+      // Use voice-specific characteristic
+      accent = voiceCharacteristics[voice.id.toLowerCase()];
+    } else {
+      // Default to tier-appropriate quality
+      accent = selectedTier === 'premium' ? 'Premium' : 'Professional';
+    }
+    
+    const gender = genderMap[voice.gender] || voice.gender || 'Voice';
+    
+    return `${gender} • ${accent}`;
   };
 
   if (loading) {
@@ -444,7 +514,7 @@ const VoicesSection = () => {
                 <div>
                   <h3 className="font-semibold text-gray-900">{voice.name}</h3>
                   <p className="text-sm text-gray-500">
-                    {voice.gender} • {voice.accent || voice.provider}
+                    {getVoiceDescription(voice)}
                   </p>
                 </div>
                 {selectedTier === 'premium' && (

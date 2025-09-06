@@ -236,6 +236,85 @@ const VoiceSelector = ({
     return voice.language || voice.language_code || 'en-US';
   };
 
+  // Professional voice description mapping (same as VoicesSection)
+  const getVoiceDescription = (voice) => {
+    // Map accents to user-friendly descriptions
+    const accentMap = {
+      'US': 'American',
+      'UK': 'British', 
+      'AU': 'Australian',
+      'CA': 'Canadian',
+      'IE': 'Irish',
+      'ZA': 'South African',
+      'en-US': 'American',
+      'en-GB': 'British',
+      'en-AU': 'Australian',
+      'american': 'American',
+      'british': 'British',
+      'neutral': 'Professional'
+    };
+
+    // Map genders to professional descriptions
+    const genderMap = {
+      'female': 'Female',
+      'male': 'Male', 
+      'neutral': 'Professional'
+    };
+
+    // Voice-specific characteristics for premium experience
+    const voiceCharacteristics = {
+      // Regular voices
+      'alloy': 'Clear Professional Voice',
+      'echo': 'Deep Professional Voice', 
+      'fable': 'Warm Professional Voice',
+      'onyx': 'Confident Professional Voice',
+      'nova': 'Friendly Professional Voice',
+      'shimmer': 'Bright Professional Voice',
+      'guy': 'Male Professional Voice',
+      'jane': 'Female Natural Voice',
+      'aria': 'Female Elegant Voice',
+      'davis': 'Male Authoritative Voice',
+      'jason': 'Male Reliable Voice',
+      'jenny': 'Female Smooth Voice',
+      
+      // Premium voices  
+      'charlotte': 'Female Sophisticated Voice',
+      'daniel': 'Male Distinguished Voice',
+      'lily': 'Female Expressive Voice', 
+      'giovanni': 'Male Dynamic Voice',
+      'rachel': 'Female Captivating Voice',
+      'drew': 'Male Compelling Voice',
+      'clyde': 'Male Rich Voice',
+      'bella': 'Female Melodic Voice'
+    };
+
+    // Check if this is a specific voice with known characteristics
+    const voiceId = (voice.id || voice.name || '').toLowerCase();
+    if (voiceCharacteristics[voiceId]) {
+      return voiceCharacteristics[voiceId];
+    }
+    
+    // Get user-friendly accent and gender
+    let accent = 'Professional';
+    if (voice.accent && accentMap[voice.accent.toLowerCase()]) {
+      accent = accentMap[voice.accent.toLowerCase()];
+    } else if (voice.language && accentMap[voice.language.toLowerCase()]) {
+      accent = accentMap[voice.language.toLowerCase()];
+    }
+    
+    let gender = 'Professional';
+    if (voice.gender && genderMap[voice.gender.toLowerCase()]) {
+      gender = genderMap[voice.gender.toLowerCase()];
+    }
+    
+    // Combine for a professional description
+    if (accent === 'Professional' && gender === 'Professional') {
+      return voiceTier === 'premium' ? 'Premium Professional Voice' : 'Professional Voice';
+    }
+    
+    return `${gender} ${accent} Voice`;
+  };
+
   const getTierIcon = (tier) => {
     return tier === 'premium' ? <Crown className="h-4 w-4 text-yellow-500" /> : <Star className="h-4 w-4 text-gray-400" />;
   };
@@ -425,30 +504,16 @@ const VoiceSelector = ({
                       <span className="font-medium text-gray-900">
                         {voice.name || voice.display_name}
                       </span>
-                      {voice.provider && (
-                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                          {voice.provider}
+                      {voiceTier === 'premium' && (
+                        <span className="text-xs px-2 py-1 bg-purple-100 text-purple-600 rounded">
+                          Premium
                         </span>
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
-                      <span>{getVoiceGender(voice)}</span>
-                      <span>•</span>
-                      <span>{getVoiceLanguage(voice)}</span>
-                      {voice.accent && (
-                        <>
-                          <span>•</span>
-                          <span>{voice.accent}</span>
-                        </>
-                      )}
+                    <div className="text-xs text-gray-500">
+                      {getVoiceDescription(voice)}
                     </div>
-                    
-                    {voice.description && (
-                      <div className="text-xs text-gray-500 mt-1 truncate">
-                        {voice.description}
-                      </div>
-                    )}
                   </div>
                   
                   <div className="flex items-center gap-2 ml-3">
