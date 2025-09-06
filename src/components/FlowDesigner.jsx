@@ -21,6 +21,7 @@ import FlowDesignerCanvasControls from './FlowDesigner/FlowDesignerCanvasControl
 import FlowDesignerNotifications from './FlowDesigner/FlowDesignerNotifications';
 import FlowDesignerCommandPalette from './FlowDesigner/FlowDesignerCommandPalette';
 import VoiceSelector from './VoiceSelector';
+import WebClientModal from './WebClientModal';
 import CallCostTracker from './CallCostTracker';
 import PricingValidationModal from './PricingValidationModal';
 import ProductionFlowManager from './ProductionFlowManager';
@@ -2831,184 +2832,16 @@ Your goal is to establish credibility and guide interactions with confident expe
 
       {/* Web Client Modal */}
       {activeModal === 'webClient' && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={(e) => {
-          if (e.target === e.currentTarget) closeModal();
-        }}>
-          <div className={`rounded-xl shadow-2xl w-full max-w-6xl mx-4 max-h-[90vh] overflow-y-auto ${
-            isDarkMode ? 'bg-gray-800' : 'bg-white'
-          }`} onClick={(e) => e.stopPropagation()}>
-            <div className={`flex items-center justify-between p-6 border-b ${
-              isDarkMode ? 'border-gray-700' : 'border-gray-200'
-            }`}>
-              <div>
-                <h2 className={`text-2xl font-semibold ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>Web Client</h2>
-                <p className={`text-sm mt-1 ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                }`}>Test your call flows and see AI agent responses in real-time</p>
-              </div>
-              <button onClick={closeModal} className={`p-2 rounded-lg transition-colors ${
-                isDarkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
-              }`}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="flex h-[600px]">
-              {/* Left Panel - Simple Configuration */}
-              <div className={`w-80 border-r p-4 space-y-4 ${
-                isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-50'
-              }`}>
-                <h3 className={`text-lg font-semibold mb-4 ${
-                  isDarkMode ? 'text-white' : 'text-gray-900'
-                }`}>Test Configuration</h3>
-                
-                <div className="space-y-4">
-                  {/* Pathway Selection */}
-                  <div>
-                    <label className={`block text-sm font-medium mb-2 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Select Flow</label>
-                    <select className={`w-full p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
-                      isDarkMode 
-                        ? 'bg-gray-800 border-gray-600 text-white' 
-                        : 'bg-white border-gray-200 text-gray-900'
-                    }`}>
-                      <option>Vocelio SalesBot - Version 1</option>
-                      <option>Customer Support Bot</option>
-                      <option>Lead Qualifier Bot</option>
-                      <option>Appointment Setter Bot</option>
-                    </select>
-                  </div>
-
-                  {/* Voice Selection */}
-                  <div>
-                    <VoiceSelector
-                      voiceTier={globalVoiceSettings.voiceTier}
-                      setVoiceTier={(tier) => setGlobalVoiceSettings(prev => ({ ...prev, voiceTier: tier }))}
-                      selectedVoice={globalVoiceSettings.selectedVoice}
-                      setSelectedVoice={(voice) => setGlobalVoiceSettings(prev => ({ ...prev, selectedVoice: voice }))}
-                      availableVoices={availableVoices}
-                      onLoadVoices={loadVoices}
-                      isLoading={loadingVoices}
-                      onEnableAudio={enableAudioContext}
-                      showTestCall={false}
-                      mode="compact"
-                      className=""
-                    />
-                  </div>
-
-                  {/* Start Test Button */}
-                  <button className="w-full mt-6 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
-                    🚀 Start Test Conversation
-                  </button>
-
-                  {/* Test Status */}
-                  <div className={`p-3 rounded-lg ${
-                    isDarkMode ? 'bg-gray-800' : 'bg-blue-50'
-                  }`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <span className={`text-sm font-medium ${
-                        isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                      }`}>Test Status: Ready</span>
-                    </div>
-                    <div className={`text-xs ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                    }`}>
-                      Click start to begin your flow
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Panel - Simple Chat Interface */}
-              <div className="flex-1 flex flex-col">
-                {/* Chat Header */}
-                <div className={`border-b p-4 ${
-                  isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className={`font-semibold ${
-                        isDarkMode ? 'text-white' : 'text-gray-900'
-                      }`}>Chat</h3>
-                      <p className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>Test your AI agent conversation flow</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <span className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>Ready to test</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Chat Messages Area */}
-                <div className={`flex-1 p-4 overflow-y-auto ${
-                  isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-                }`}>
-                  <div className={`text-center py-12 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    <div className="text-6xl mb-4">🤖</div>
-                    <h3 className={`text-lg font-medium mb-2 ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Ready to Chat</h3>
-                    <p className="mb-4">Start a conversation to see how your AI agent responds</p>
-                    <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                      Begin Conversation
-                    </button>
-                  </div>
-                </div>
-
-                {/* Chat Input */}
-                <div className={`border-t p-4 ${
-                  isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-                }`}>
-                  <div className="flex gap-3">
-                    <input
-                      type="text"
-                      placeholder="Type as customer to test the AI agent..."
-                      className={`flex-1 p-3 border-2 rounded-lg focus:border-blue-500 outline-none ${
-                        isDarkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                          : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
-                      }`}
-                      disabled
-                    />
-                    <button 
-                      className="px-6 py-3 bg-gray-400 text-white rounded-lg cursor-not-allowed"
-                      disabled
-                    >
-                      Send
-                    </button>
-                  </div>
-                  <div className={`text-xs mt-2 ${
-                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
-                    Start a session to enable chat
-                  </div>
-                  
-                  {/* Session Control Buttons */}
-                  <div className="flex items-center gap-3 mt-4">
-                    <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm">
-                      Start Session
-                    </button>
-                    <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm">
-                      End Session
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Session Header */}
-          </div>
-        </div>
+        <WebClientModal 
+          isDarkMode={isDarkMode}
+          closeModal={closeModal}
+          globalVoiceSettings={globalVoiceSettings}
+          setGlobalVoiceSettings={setGlobalVoiceSettings}
+          availableVoices={availableVoices}
+          loadVoices={loadVoices}
+          loadingVoices={loadingVoices}
+          enableAudioContext={enableAudioContext}
+        />
       )}
 
       {/* Promote to Production Modal */}
