@@ -40,7 +40,6 @@ const VoiceSelector = ({
   showLanguageFilter = false,
   showRefresh = false,
   showTierSelection = true,
-  showCustomScript = false,
   maxSelection = 1,
   className = '',
   onVoiceSelect,
@@ -260,7 +259,15 @@ const VoiceSelector = ({
 
   const handleRefresh = async () => {
     setRefreshSuccess(false);
+    
+    // Load voices from API
     await loadVoicesFromAPI();
+    
+    // Also trigger legacy refresh if callback provided (for backward compatibility)
+    if (onLoadVoices) {
+      onLoadVoices();
+    }
+    
     setRefreshSuccess(true);
     setTimeout(() => setRefreshSuccess(false), 2000);
   };
@@ -483,42 +490,20 @@ const VoiceSelector = ({
         </div>
         
         <div className="flex items-center space-x-2">
-          {/* Refresh Button */}
-          {(showRefresh || mode === 'gallery') && (
-            <button
-              onClick={handleRefresh}
-              disabled={loadingVoices}
-              className={`p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${
-                refreshSuccess ? 'text-green-600 bg-green-50' : ''
-              }`}
-              title="Refresh voices from APIs"
-            >
-              {refreshSuccess ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <RefreshCw className={`h-4 w-4 ${loadingVoices ? 'animate-spin' : ''}`} />
-              )}
-            </button>
-          )}
-          
-          {/* Existing buttons for backward compatibility */}
-          {mode === 'grid' && (
-            <button
-              onClick={loadVoicesFromAPI}
-              disabled={loadingVoices}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Refresh voices from APIs"
-            >
-              <RefreshCw className={`h-4 w-4 ${loadingVoices ? 'animate-spin' : ''}`} />
-            </button>
-          )}
+          {/* Unified Refresh Button */}
           <button
-            onClick={onLoadVoices}
-            disabled={isLoading}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-            title="Refresh legacy voices"
+            onClick={handleRefresh}
+            disabled={loadingVoices}
+            className={`p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors ${
+              refreshSuccess ? 'text-green-600 bg-green-50' : ''
+            }`}
+            title="Refresh voices from APIs"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            {refreshSuccess ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <RefreshCw className={`h-4 w-4 ${loadingVoices ? 'animate-spin' : ''}`} />
+            )}
           </button>
         </div>
       </div>
@@ -551,46 +536,7 @@ const VoiceSelector = ({
         </div>
       )}
 
-      {/* Custom Script Section (Gallery Mode) */}
-      {(showCustomScript || mode === 'gallery') && (
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            <Mic2 className="inline h-4 w-4 mr-1" />
-            Custom Script for Voice Testing
-          </label>
-          <div className="relative">
-            <textarea
-              value={customScript}
-              onChange={(e) => setCustomScript(e.target.value.slice(0, 500))}
-              placeholder="Enter your custom script here..."
-              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              rows={3}
-              maxLength={500}
-            />
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-gray-500">
-                {customScript.length}/500 characters
-              </span>
-              <button
-                onClick={handleCopyScript}
-                className="flex items-center gap-1 px-3 py-1 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              >
-                {copiedScript ? (
-                  <>
-                    <Check className="h-3 w-3" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3 w-3" />
-                    Copy
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Tier Selection */}
       {showTierSelection && (
@@ -612,7 +558,7 @@ const VoiceSelector = ({
                 <span className="font-medium">Regular</span>
               </div>
               <div className="text-xs text-gray-500">
-                Azure TTS ({voicesFromAPI.regular?.length || 0} voices)
+                Regular Voices ({voicesFromAPI.regular?.length || 0} voices)
               </div>
               {pricingInfo?.regular && (
                 <div className="text-xs font-medium text-green-600 mt-1">
@@ -634,7 +580,7 @@ const VoiceSelector = ({
                 <span className="font-medium">Premium</span>
               </div>
               <div className="text-xs text-gray-500">
-                ElevenLabs ({voicesFromAPI.premium?.length || 0} voices)
+                Premium Voices ({voicesFromAPI.premium?.length || 0} voices)
               </div>
               {pricingInfo?.premium && (
                 <div className="text-xs font-medium text-amber-600 mt-1">

@@ -34,7 +34,6 @@ const VoicesPageNew = () => {
           showLanguageFilter={true}
           showRefresh={true}
           showTierSelection={true}
-          showCustomScript={true}
           title="Voice Library"
           description="Select up to 5 voices to compare and test with your custom scripts"
           onVoicesSelect={handleVoicesSelect}
