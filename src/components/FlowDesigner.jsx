@@ -16,8 +16,6 @@ import {
 } from 'lucide-react';
 
 // Import extracted components
-import FlowDesignerHeader from './FlowDesigner/FlowDesignerHeader';
-import ProgressiveDisclosureHeader from './FlowDesigner/ProgressiveDisclosureHeader';
 import FlowDesignerHeaderSimple from './FlowDesigner/FlowDesignerHeaderSimple';
 import FlowDesignerCanvasControls from './FlowDesigner/FlowDesignerCanvasControls';
 import FlowDesignerNotifications from './FlowDesigner/FlowDesignerNotifications';
@@ -1637,7 +1635,7 @@ Your goal is to establish credibility and guide interactions with confident expe
       {/* Notifications */}
       <FlowDesignerNotifications notifications={notifications} />
 
-      {/* Header with Simple, Reliable Design */}
+      {/* Header with integrated sidebar functionality */}
       <FlowDesignerHeaderSimple
         isDarkMode={isDarkMode}
         copyId={copyId}

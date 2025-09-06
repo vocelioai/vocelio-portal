@@ -26,14 +26,15 @@ const FlowDesignerHeaderSimple = ({
 }) => {
   const [showAllFunctions, setShowAllFunctions] = useState(false);
 
-  // TOP 5 PRIORITY FUNCTIONS + ALL OTHER FUNCTIONS - Complete list with dropdown access
+  // TOP 6 PRIORITY FUNCTIONS + ALL OTHER FUNCTIONS - Complete list with dropdown access
   const allFunctions = [
-    // TOP 5 PRIORITY FUNCTIONS
-    { label: 'Send Call', icon: '�', action: () => showModal('sendCall') },
+    // TOP 6 PRIORITY FUNCTIONS
+    { label: 'Send Call', icon: '📞', action: () => showModal('sendCall') },
     { label: 'Promote to Production', icon: '🚀', action: () => showModal('promoteProduction') },
     { label: 'Test Pathways', icon: '🧪', action: () => showModal('testPathway') },
     { label: 'Webclient', icon: '🌐', action: () => showModal('webClient') },
     { label: 'AI Optimizer', icon: '🧠', action: () => setAiOptimizerOpen(true) },
+    { label: 'Node Library', icon: '📋', action: () => sidebarItems?.find(item => item.label === 'Node Library')?.action() },
     
     // TEMPLATE & COLLABORATION FUNCTIONS (available in dropdown)
     { label: 'Flow Templates', icon: '🗂️', action: () => setFlowTemplateBrowserOpen(true) },
@@ -43,7 +44,6 @@ const FlowDesignerHeaderSimple = ({
     { label: 'Context Library', icon: '📚', action: () => sidebarItems?.find(item => item.label === 'Context Library')?.action() },
     
     // ESSENTIAL FUNCTIONS
-    { label: 'Node Library', icon: '📋', action: () => sidebarItems?.find(item => item.label === 'Node Library')?.action() },
     { label: 'Global Prompt', icon: '🌍', action: () => showModal('globalPrompt') },
     { label: 'Production Manager', icon: '📊', action: () => sidebarItems?.find(item => item.label === 'Production Manager')?.action() },
     { label: 'Phone → Flow Setup', icon: '📞', action: () => sidebarItems?.find(item => item.label === 'Phone → Flow Setup')?.action() },
@@ -52,7 +52,6 @@ const FlowDesignerHeaderSimple = ({
     { label: 'Context Analytics', icon: '📈', action: () => sidebarItems?.find(item => item.label === 'Context Analytics')?.action() },
     { label: 'AI Template Gen', icon: '🤖', action: () => sidebarItems?.find(item => item.label === 'AI Template Gen')?.action() },
     { label: 'Context Inheritance', icon: '🧬', action: () => sidebarItems?.find(item => item.label === 'Context Inheritance')?.action() },
-    { label: 'AI Optimize Context', icon: '🎯', action: () => sidebarItems?.find(item => item.label === 'AI Optimize Context')?.action() },
     { label: 'Sync Status', icon: '🔄', action: () => sidebarItems?.find(item => item.label === 'Sync Status')?.action() },
     { label: 'Feature Flags', icon: '🎯', action: () => sidebarItems?.find(item => item.label === 'Feature Flags')?.action() },
     
@@ -131,11 +130,11 @@ const FlowDesignerHeaderSimple = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              Top 5 Priority Functions:
+              Top 6 Priority Functions:
             </span>
             
-            {/* Show the TOP 5 PRIORITY functions */}
-            {allFunctions.slice(0, 5).map((func, idx) => (
+            {/* Show the TOP 6 PRIORITY functions */}
+            {allFunctions.slice(0, 6).map((func, idx) => (
               <button
                 key={idx}
                 onClick={() => handleFunctionClick(func)}
