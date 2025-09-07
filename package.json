@@ -11,6 +11,8 @@
     "deploy": "gcloud run deploy vocilio-dashboard --source . --port 8080 --allow-unauthenticated"
   },
   "dependencies": {
+    "@stripe/react-stripe-js": "^4.0.0",
+    "@stripe/stripe-js": "^7.9.0",
     "axios": "^1.4.0",
     "compression": "^1.7.4",
     "express": "^4.18.2",

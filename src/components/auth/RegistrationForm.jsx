@@ -1,21 +1,20 @@
 /**
- * 🎯 Enhanced Registration Component with Multi-Tenant Organization Setup
+ * 🎯 Simplified Registration Component - Wallet System Integration
+ * Removes tier selection - users automatically get starter tier with $4.00 balance
  */
 import React, { useState } from 'react';
-import { authManager } from '../../services/authManager.js';
+import { register } from '../../utils/auth.js';
 
 const RegistrationForm = ({ onRegistrationSuccess }) => {
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    first_name: '',
+    last_name: '',
     email: '',
     password: '',
     confirmPassword: '',
     phone: '',
-    organizationName: '',
-    subdomain: '',
-    tier: 'starter',
-    voiceTier: 'basic'
+    organization_name: '',
+    subdomain: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -30,7 +29,7 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
     }));
 
     // Auto-generate subdomain from organization name
-    if (name === 'organizationName') {
+    if (name === 'organization_name') {
       const subdomain = value
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '')
@@ -43,7 +42,7 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
   };
 
   const validateStep1 = () => {
-    if (!formData.firstName || !formData.lastName || !formData.email) {
+    if (!formData.first_name || !formData.last_name || !formData.email) {
       setError('Please fill in all personal information fields.');
       return false;
     }
@@ -59,7 +58,7 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
   };
 
   const validateStep2 = () => {
-    if (!formData.organizationName || !formData.subdomain) {
+    if (!formData.organization_name || !formData.subdomain) {
       setError('Please provide organization details.');
       return false;
     }
@@ -91,13 +90,9 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
     setLoading(true);
 
     try {
-      const result = await authManager.registerUser(formData);
+      const result = await register(formData);
       
       console.log('✅ Registration successful:', result);
-      
-      // Get organization context
-      const orgContext = authManager.getOrganizationContext();
-      console.log('🏢 Organization context:', orgContext);
       
       onRegistrationSuccess && onRegistrationSuccess(result);
       
@@ -117,8 +112,25 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
             Create your Vocelio account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Set up your AI calling platform
+            Get $4.00 free + 50 free minutes monthly
           </p>
+          
+          {/* Welcome Package Preview */}
+          <div className="mt-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+            <div className="text-center">
+              <div className="text-sm font-medium text-gray-700 mb-2">🎁 Your Welcome Package:</div>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-green-600">$4.00</div>
+                  <div className="text-gray-600">Free Balance</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-blue-600">50</div>
+                  <div className="text-gray-600">Monthly Minutes</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Progress indicator */}
@@ -143,31 +155,34 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
                     First Name
                   </label>
                   <input
-                    id="firstName"
-                    name="firstName"
+                    id="first_name"
+                    name="first_name"
                     type="text"
                     required
-                    value={formData.firstName}
+                    value={formData.first_name}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="John"
                   />
                 </div>
+                
                 <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
                     Last Name
                   </label>
                   <input
-                    id="lastName"
-                    name="lastName"
+                    id="last_name"
+                    name="last_name"
                     type="text"
                     required
-                    value={formData.lastName}
+                    value={formData.last_name}
                     onChange={handleInputChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="Doe"
                   />
                 </div>
               </div>
@@ -183,22 +198,8 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                  Phone Number
-                </label>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="+1 (555) 123-4567"
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="your.email@company.com"
                 />
               </div>
 
@@ -213,7 +214,8 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Create a strong password"
                 />
               </div>
 
@@ -228,16 +230,32 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
                   required
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Confirm your password"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  Phone Number (Optional)
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="+1 (555) 123-4567"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                Next: Organization Setup
+                Continue to Organization Setup
               </button>
             </div>
           )}
@@ -247,17 +265,17 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
               <h3 className="text-lg font-medium text-gray-900">Organization Setup</h3>
               
               <div>
-                <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="organization_name" className="block text-sm font-medium text-gray-700">
                   Organization Name
                 </label>
                 <input
-                  id="organizationName"
-                  name="organizationName"
+                  id="organization_name"
+                  name="organization_name"
                   type="text"
                   required
-                  value={formData.organizationName}
+                  value={formData.organization_name}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                   placeholder="Your Company Name"
                 />
               </div>
@@ -274,84 +292,70 @@ const RegistrationForm = ({ onRegistrationSuccess }) => {
                     required
                     value={formData.subdomain}
                     onChange={handleInputChange}
-                    className="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-l-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-l-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="your-company"
                   />
-                  <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                    .vocelio.ai
+                  <span className="inline-flex items-center px-3 py-2 border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-r-md">
+                    .vocelio.com
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Your unique dashboard URL: {formData.subdomain}.vocelio.ai
+                  This will be your organization's unique URL
                 </p>
               </div>
 
-              <div>
-                <label htmlFor="tier" className="block text-sm font-medium text-gray-700">
-                  Subscription Tier
-                </label>
-                <select
-                  id="tier"
-                  name="tier"
-                  value={formData.tier}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="starter">Starter - $29/month</option>
-                  <option value="professional">Professional - $79/month</option>
-                  <option value="enterprise">Enterprise - Custom pricing</option>
-                </select>
+              {/* Automatic Features Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">✨ Included with your account:</h4>
+                <ul className="text-xs text-blue-700 space-y-1">
+                  <li>• $4.00 starting balance (no payment required)</li>
+                  <li>• 50 free regular voice minutes every month</li>
+                  <li>• Starter tier with volume discounts available</li>
+                  <li>• Full access to AI calling platform</li>
+                  <li>• Multi-tenant organization management</li>
+                </ul>
               </div>
 
-              <div>
-                <label htmlFor="voiceTier" className="block text-sm font-medium text-gray-700">
-                  Voice Quality Tier
-                </label>
-                <select
-                  id="voiceTier"
-                  name="voiceTier"
-                  value={formData.voiceTier}
-                  onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="basic">Basic - $0.08/minute (Azure)</option>
-                  <option value="premium">Premium - $0.35/minute (ElevenLabs)</option>
-                </select>
-              </div>
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                  <div className="text-sm text-red-600">{error}</div>
+                </div>
+              )}
 
               <div className="flex space-x-4">
                 <button
                   type="button"
                   onClick={handlePrevStep}
-                  className="flex-1 flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="flex-1 group relative flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="flex-1 group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
                 >
-                  {loading ? 'Creating Account...' : 'Create Account'}
+                  {loading ? (
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  ) : null}
+                  {loading ? 'Creating Account...' : 'Create Account & Get $4 Free'}
                 </button>
               </div>
             </div>
           )}
-
-          {error && (
-            <div className="text-sm text-red-700 bg-red-50 p-3 rounded-md">
-              {error}
-            </div>
-          )}
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in to Vocelio
-              </a>
-            </p>
-          </div>
         </form>
+
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            Already have an account?{' '}
+            <a href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+              Sign in
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

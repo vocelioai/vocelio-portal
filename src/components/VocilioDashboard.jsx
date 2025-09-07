@@ -7,13 +7,20 @@ import {
   Upload, Download, Edit, Trash2, Copy, RefreshCw, Filter,
   ChevronDown, ChevronRight, ExternalLink, Mail, MessageSquare, Loader,
   Activity, Wifi, WifiOff, Server, Database, Cloud, 
-  LineChart, PieChart, BarChart, TrendingDown, AlertTriangle, LogOut
+  LineChart, PieChart, BarChart, TrendingDown, AlertTriangle, LogOut,
+  Wallet, Receipt, PieChart as UsageIcon
 } from 'lucide-react';
 
 // 🎯 UPDATED: Import enhanced services with multi-tenant support
 import { authManager } from '../services/authManager.js';
 import { vocelioAPI } from '../services/vocelioAPI.js';
 import { realtimeConversationService } from '../services/realtimeConversationService.js';
+
+// Import wallet components
+import WalletBalance from './WalletBalance.jsx';
+import AddFunds from './AddFunds.jsx';
+import TransactionHistory from './TransactionHistory.jsx';
+import UsageDashboard from './UsageDashboard.jsx';
 
 // Import world-class services
 import serviceManager, { 
@@ -294,7 +301,7 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
       </div>
 
       {/* Enhanced Stats Cards with AI Predictions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <EnhancedStatCard 
           title="Total Calls" 
           value={stats.totalCalls?.toLocaleString() || '0'} 
@@ -327,6 +334,23 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
           prediction={stats.predictions?.roi}
           trend={stats.trends?.roi}
         />
+        {/* Wallet Balance Card */}
+        <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-200 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <Wallet className="w-6 h-6 text-green-600" />
+            <button 
+              onClick={() => setActiveSection('wallet-balance')}
+              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Manage →
+            </button>
+          </div>
+          <div className="space-y-1">
+            <div className="text-sm text-gray-600">Wallet Balance</div>
+            <div className="text-lg font-bold text-green-600">$4.00</div>
+            <div className="text-xs text-gray-500">50 free min left</div>
+          </div>
+        </div>
       </div>
 
       {/* AI Insights Panel */}
@@ -739,7 +763,7 @@ const ErrorMessage = ({ error, onRetry }) => (
   </div>
 );
 
-const VocilioDashboard = ({ onLogout, orgContext }) => {
+const VocilioDashboard = ({ onLogout, user }) => {
   const [activeSection, setActiveSection] = useState('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1079,6 +1103,17 @@ const VocilioDashboard = ({ onLogout, orgContext }) => {
       ]
     },
     { 
+      id: 'wallet', 
+      label: 'Wallet & Usage', 
+      icon: Wallet,
+      subitems: [
+        { id: 'wallet-balance', label: 'Wallet Balance' },
+        { id: 'add-funds', label: 'Add Funds' },
+        { id: 'transaction-history', label: 'Transaction History' },
+        { id: 'usage-analytics', label: 'Usage Analytics' }
+      ]
+    },
+    { 
       id: 'analytics', 
       label: 'Analytics', 
       icon: TrendingUp,
@@ -1174,6 +1209,88 @@ const VocilioDashboard = ({ onLogout, orgContext }) => {
       case 'contacts':
       case 'contact-lists':
         return <ContactsSection />;
+      
+      // 💰 Wallet & Usage Sections
+      case 'wallet':
+      case 'wallet-balance':
+        return (
+          <div className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Wallet & Balance</h2>
+              <button
+                onClick={() => setActiveSection('add-funds')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200"
+              >
+                Add Funds
+              </button>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <WalletBalance 
+                  onAddFunds={() => setActiveSection('add-funds')}
+                  onViewHistory={() => setActiveSection('transaction-history')}
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <UsageDashboard />
+              </div>
+            </div>
+          </div>
+        );
+      
+      case 'add-funds':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <button
+                onClick={() => setActiveSection('wallet-balance')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Wallet
+              </button>
+            </div>
+            <AddFunds 
+              onSuccess={(amount) => {
+                console.log(`Added $${amount} to wallet`);
+                setActiveSection('wallet-balance');
+              }}
+              onCancel={() => setActiveSection('wallet-balance')}
+            />
+          </div>
+        );
+      
+      case 'transaction-history':
+        return (
+          <div className="p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <button
+                onClick={() => setActiveSection('wallet-balance')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Wallet
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900">Transaction History</h2>
+            </div>
+            <TransactionHistory />
+          </div>
+        );
+      
+      case 'usage-analytics':
+        return (
+          <div className="p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <button
+                onClick={() => setActiveSection('wallet-balance')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Wallet
+              </button>
+              <h2 className="text-2xl font-bold text-gray-900">Usage Analytics</h2>
+            </div>
+            <UsageDashboard />
+          </div>
+        );
+      
       case 'analytics':
       case 'performance-reports':
         return <AnalyticsSection stats={stats} />;

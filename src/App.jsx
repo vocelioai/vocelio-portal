@@ -1,39 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { authManager } from './services/authManager.js';
+import { isAuthenticated, getCurrentUser, logout } from './utils/auth.js';
 import LoginForm from './components/auth/LoginForm.jsx';
 import RegistrationForm from './components/auth/RegistrationForm.jsx';
+import WelcomeMessage from './components/WelcomeMessage.jsx';
 import VocilioDashboard from './components/VocilioDashboard';
+import AddFunds from './components/AddFunds.jsx';
+import TransactionHistory from './components/TransactionHistory.jsx';
+import UsageDashboard from './components/UsageDashboard.jsx';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  if (!authManager.isAuthenticated()) {
+  if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
   return children;
 };
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userAuthenticated, setUserAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [orgContext, setOrgContext] = useState(null);
+  const [user, setUser] = useState(null);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     // Check authentication status on app load
     const checkAuth = async () => {
       try {
-        const authenticated = authManager.isAuthenticated();
-        setIsAuthenticated(authenticated);
+        const authenticated = isAuthenticated();
+        setUserAuthenticated(authenticated);
         
         if (authenticated) {
-          // Get organization context for UI
-          const context = authManager.getOrganizationContext();
-          setOrgContext(context);
-          console.log('🏢 Organization loaded:', context);
+          const userData = getCurrentUser();
+          setUser(userData);
+          console.log('🏢 User loaded:', userData);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        setIsAuthenticated(false);
+        setUserAuthenticated(false);
       } finally {
         setLoading(false);
       }
@@ -43,16 +47,33 @@ function App() {
   }, []);
 
   const handleLoginSuccess = (userData) => {
-    setIsAuthenticated(true);
-    const context = authManager.getOrganizationContext();
-    setOrgContext(context);
-    console.log('✅ Login successful, org context:', context);
+    setUserAuthenticated(true);
+    setUser(userData.user || userData);
+    console.log('✅ Login successful:', userData);
+  };
+
+  const handleRegistrationSuccess = (userData) => {
+    setUserAuthenticated(true);
+    setUser(userData.user || userData);
+    setShowWelcome(true);
+    console.log('✅ Registration successful:', userData);
+  };
+
+  const handleWelcomeComplete = () => {
+    setShowWelcome(false);
   };
 
   const handleLogout = () => {
-    authManager.logout();
-    setIsAuthenticated(false);
-    setOrgContext(null);
+    logout();
+    setUserAuthenticated(false);
+    setUser(null);
+    setShowWelcome(false);
+  };
+
+  const handleAddFundsSuccess = (amount) => {
+    console.log(`✅ Added $${amount} to wallet`);
+    // You might want to refresh wallet balance here
+    window.location.href = '/dashboard';
   };
 
   if (loading) {
@@ -66,18 +87,28 @@ function App() {
     );
   }
 
+  // Show welcome message after registration
+  if (showWelcome && userAuthenticated) {
+    return (
+      <WelcomeMessage 
+        user={user} 
+        onGetStarted={handleWelcomeComplete}
+      />
+    );
+  }
+
   return (
     <Router>
       <div className="App">
         {/* Organization branding header */}
-        {isAuthenticated && orgContext && (
+        {userAuthenticated && user && (
           <div className="bg-blue-600 text-white px-4 py-2 text-sm">
             <div className="flex justify-between items-center max-w-7xl mx-auto">
               <span>
-                {orgContext.organizationName} • {orgContext.subdomain}.vocelio.ai
+                {user.organization_name} • {user.subdomain}.vocelio.com
               </span>
               <span>
-                {orgContext.subscriptionTier} • Voice: {orgContext.voiceTier}
+                Starter Tier • Regular Voice • Wallet System Active
               </span>
             </div>
           </div>
@@ -87,7 +118,7 @@ function App() {
           <Route 
             path="/login" 
             element={
-              isAuthenticated ? 
+              userAuthenticated ? 
               <Navigate to="/dashboard" replace /> : 
               <LoginForm onLoginSuccess={handleLoginSuccess} />
             } 
@@ -95,18 +126,76 @@ function App() {
           <Route 
             path="/register" 
             element={
-              isAuthenticated ? 
+              userAuthenticated ? 
               <Navigate to="/dashboard" replace /> : 
-              <RegistrationForm onRegistrationSuccess={handleLoginSuccess} />
+              <RegistrationForm onRegistrationSuccess={handleRegistrationSuccess} />
             } 
           />
+          
+          {/* Wallet Routes */}
+          <Route 
+            path="/wallet/add-funds" 
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-gray-50 py-8">
+                  <div className="max-w-2xl mx-auto">
+                    <AddFunds 
+                      onSuccess={handleAddFundsSuccess}
+                      onCancel={() => window.history.back()}
+                    />
+                  </div>
+                </div>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/wallet/history" 
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-gray-50 py-8">
+                  <div className="max-w-4xl mx-auto px-4">
+                    <div className="mb-6">
+                      <button
+                        onClick={() => window.history.back()}
+                        className="text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        ← Back to Dashboard
+                      </button>
+                    </div>
+                    <TransactionHistory />
+                  </div>
+                </div>
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/usage" 
+            element={
+              <ProtectedRoute>
+                <div className="min-h-screen bg-gray-50 py-8">
+                  <div className="max-w-6xl mx-auto px-4">
+                    <div className="mb-6">
+                      <button
+                        onClick={() => window.history.back()}
+                        className="text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        ← Back to Dashboard
+                      </button>
+                    </div>
+                    <UsageDashboard />
+                  </div>
+                </div>
+              </ProtectedRoute>
+            } 
+          />
+          
           <Route 
             path="/dashboard/*" 
             element={
               <ProtectedRoute>
                 <VocilioDashboard 
                   onLogout={handleLogout} 
-                  orgContext={orgContext}
+                  user={user}
                 />
               </ProtectedRoute>
             } 
