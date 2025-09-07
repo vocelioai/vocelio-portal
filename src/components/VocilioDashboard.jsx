@@ -8,13 +8,14 @@ import {
   ChevronDown, ChevronRight, ExternalLink, Mail, MessageSquare, Loader,
   Activity, Wifi, WifiOff, Server, Database, Cloud, 
   LineChart, PieChart, BarChart, TrendingDown, AlertTriangle, LogOut,
-  Wallet, Receipt, PieChart as UsageIcon
+  Wallet, Receipt, PieChart as UsageIcon, PhoneForwarded, Building2
 } from 'lucide-react';
 
 // 🎯 UPDATED: Import enhanced services with multi-tenant support
 import { authManager } from '../services/authManager.js';
 import { vocelioAPI } from '../services/vocelioAPI.js';
 import { realtimeConversationService } from '../services/realtimeConversationService.js';
+import { getCurrentUser } from '../utils/auth.js';
 
 // Import wallet components
 import WalletBalance from './WalletBalance.jsx';
@@ -48,6 +49,11 @@ import CallCenterPage from './CallCenterPage';
 
 // Import enhanced Voices section
 import VoicesPageNew from './VoicesPageNew';
+
+// Import call transfer components
+import DepartmentsPage from './call-transfer/DepartmentsPage.jsx';
+import LiveCallMonitor from './call-transfer/LiveCallMonitor.jsx';
+import CallLogsPage from './call-transfer/CallLogsPage.jsx';
 
 // Enhanced Utility Components with AI Integration
 const EnhancedStatCard = ({ title, value, icon: Icon, color, prediction, trend }) => {
@@ -1067,6 +1073,9 @@ const VocilioDashboard = ({ onLogout, user }) => {
   }, []);
 
   // Navigation items
+  const currentUser = getCurrentUser();
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.user_metadata?.role === 'admin';
+  
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { 
@@ -1089,6 +1098,18 @@ const VocilioDashboard = ({ onLogout, user }) => {
         { id: 'voice-settings', label: 'Call Center' },
         { id: 'call-flows', label: 'Call Flows' },
         { id: 'voices', label: 'Voices' }
+      ]
+    },
+    { 
+      id: 'call-management', 
+      label: 'Call Management', 
+      icon: PhoneForwarded,
+      subitems: [
+        { id: 'live-calls', label: 'Live Calls' },
+        { id: 'call-logs', label: 'Call Logs' },
+        ...(isAdmin ? [
+          { id: 'departments', label: 'Departments' }
+        ] : [])
       ]
     },
     { 
@@ -1290,6 +1311,28 @@ const VocilioDashboard = ({ onLogout, user }) => {
             <UsageDashboard />
           </div>
         );
+      
+      // 📞 Call Management Sections
+      case 'call-management':
+      case 'live-calls':
+        return <LiveCallMonitor />;
+      
+      case 'call-logs':
+        return <CallLogsPage />;
+      
+      case 'departments':
+        if (!isAdmin) {
+          return (
+            <div className="p-6">
+              <div className="text-center text-gray-500 py-12">
+                <Shield className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium mb-2">Access Restricted</p>
+                <p>Only administrators can manage departments.</p>
+              </div>
+            </div>
+          );
+        }
+        return <DepartmentsPage />;
       
       case 'analytics':
       case 'performance-reports':

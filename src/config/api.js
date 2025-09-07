@@ -1,7 +1,9 @@
-// Enhanced API configuration for wallet system integration
+// Enhanced API configuration for wallet system and call transfer integration
 const API_BASE_URL = 'https://auth-service-313373223340.us-central1.run.app';
+const CALL_TRANSFER_API_URL = 'https://call-transfer-service-313373223340.us-central1.run.app';
 
-export const apiCall = async (endpoint, options = {}) => {
+// Enhanced API call function supporting multiple base URLs
+export const apiCall = async (endpoint, options = {}, baseUrl = API_BASE_URL) => {
   const token = localStorage.getItem('access_token');
   
   const defaultOptions = {
@@ -12,7 +14,7 @@ export const apiCall = async (endpoint, options = {}) => {
     },
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${baseUrl}${endpoint}`, {
     ...defaultOptions,
     ...options,
   });
@@ -22,7 +24,7 @@ export const apiCall = async (endpoint, options = {}) => {
       // Token expired, try to refresh
       await refreshToken();
       // Retry the original request
-      const retryResponse = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const retryResponse = await fetch(`${baseUrl}${endpoint}`, {
         ...defaultOptions,
         ...options,
       });
@@ -78,6 +80,119 @@ export const stripeAPI = {
   
   // Get saved payment methods
   getPaymentMethods: () => apiCall('/stripe/payment-methods'),
+};
+
+// Call Transfer API functions
+export const callTransferAPI = {
+  // Department Management (NEW)
+  getDepartments: () => callTransferApiCall('/api/departments'),
+  createDepartment: (data) => callTransferApiCall('/api/departments', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  updateDepartment: (id, data) => callTransferApiCall(`/api/departments/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  }),
+  deleteDepartment: (id) => callTransferApiCall(`/api/departments/${id}`, {
+    method: 'DELETE'
+  }),
+
+  // Call Management (NEW)
+  getActiveCalls: () => callTransferApiCall('/api/calls/active'),
+  transferCall: (callId, departmentId) => callTransferApiCall('/api/calls/transfer', {
+    method: 'POST',
+    body: JSON.stringify({ call_id: callId, department_id: departmentId })
+  }),
+  getCallLogs: async (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.append(key, value);
+      }
+    });
+    const queryString = query.toString();
+    const endpoint = queryString ? `/api/calls/logs?${queryString}` : '/api/calls/logs';
+    return await callTransferApiCall(endpoint);
+  },
+  
+  // Transfer History (EXISTING - adapted)
+  getTransferHistory: (callId) => callTransferApiCall(`/api/call/${callId}/transfer-history`),
+  
+  // Real-time Events (NEW)
+  getCallEventsUrl: (callId) => `${CALL_TRANSFER_API_URL}/api/calls/${callId}/events`,
+  getActiveCallsEventsUrl: () => `${CALL_TRANSFER_API_URL}/api/calls/events`,
+};
+
+// Enhanced API call function for call transfer service
+const callTransferApiCall = async (endpoint, options = {}, baseUrl = CALL_TRANSFER_API_URL) => {
+  const token = localStorage.getItem('access_token');
+  
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+  };
+
+  console.log(`Making call transfer API request to: ${baseUrl}${endpoint}`);
+  console.log('Options:', { ...defaultOptions, ...options });
+
+  try {
+    const response = await fetch(`${baseUrl}${endpoint}`, {
+      ...defaultOptions,
+      ...options,
+    });
+
+    console.log(`Response status: ${response.status} ${response.statusText}`);
+
+    if (!response.ok) {
+      // Try to get error details from response
+      let errorMessage = `Call Transfer API failed: ${response.status} ${response.statusText}`;
+      
+      try {
+        const errorData = await response.text();
+        console.log('Error response body:', errorData);
+        if (errorData) {
+          errorMessage += ` - ${errorData}`;
+        }
+      } catch (parseError) {
+        console.log('Could not parse error response');
+      }
+
+      if (response.status === 401) {
+        console.log('Attempting token refresh...');
+        await refreshToken();
+        const retryResponse = await fetch(`${baseUrl}${endpoint}`, {
+          ...defaultOptions,
+          ...options,
+        });
+        console.log(`Retry response status: ${retryResponse.status} ${retryResponse.statusText}`);
+        
+        if (!retryResponse.ok) {
+          throw new Error(`Call Transfer API failed after retry: ${retryResponse.status} ${retryResponse.statusText}`);
+        }
+        return retryResponse.json();
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    console.log('API call successful, result:', result);
+    return result;
+    
+  } catch (error) {
+    console.error('Call Transfer API call failed:', error);
+    
+    // Handle network errors
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      throw new Error(`Network error: Cannot connect to ${baseUrl}. Please check if the call transfer service is running.`);
+    }
+    
+    throw error;
+  }
 };
 
 // Discount and tier API functions
