@@ -7,8 +7,13 @@ import {
   Upload, Download, Edit, Trash2, Copy, RefreshCw, Filter,
   ChevronDown, ChevronRight, ExternalLink, Mail, MessageSquare, Loader,
   Activity, Wifi, WifiOff, Server, Database, Cloud, 
-  LineChart, PieChart, BarChart, TrendingDown, AlertTriangle
+  LineChart, PieChart, BarChart, TrendingDown, AlertTriangle, LogOut
 } from 'lucide-react';
+
+// 🎯 UPDATED: Import enhanced services with multi-tenant support
+import { authManager } from '../services/authManager.js';
+import { vocelioAPI } from '../services/vocelioAPI.js';
+import { realtimeConversationService } from '../services/realtimeConversationService.js';
 
 // Import world-class services
 import serviceManager, { 
@@ -190,23 +195,31 @@ const NavigationItem = ({ item, activeSection, setActiveSection, collapsed }) =>
   const Icon = item.icon;
   const isActive = activeSection === item.id || (item.subitems && item.subitems.some(sub => sub.id === activeSection));
 
+  const handleClick = () => {
+    // 🎯 NEW: Handle logout action
+    if (item.isAction && item.onClick) {
+      item.onClick();
+      return;
+    }
+
+    if (item.subitems && !collapsed) {
+      setExpanded(!expanded);
+    } else {
+      setActiveSection(item.id);
+    }
+  };
+
   return (
     <div className="mb-1">
       <button
-        onClick={() => {
-          if (item.subitems && !collapsed) {
-            setExpanded(!expanded);
-          } else {
-            setActiveSection(item.id);
-          }
-        }}
+        onClick={handleClick}
         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-left hover:bg-gray-200 transition-colors ${
           isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-700'
-        }`}
+        } ${item.id === 'logout' ? 'hover:bg-red-100 hover:text-red-700' : ''}`}
       >
         <div className="flex items-center space-x-3">
-          <Icon className="w-5 h-5" />
-          {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+          <Icon className={`w-5 h-5 ${item.id === 'logout' ? 'text-red-600' : ''}`} />
+          {!collapsed && <span className={`text-sm font-medium ${item.id === 'logout' ? 'text-red-600' : ''}`}>{item.label}</span>}
         </div>
         {item.subitems && !collapsed && (
           <ChevronRight className={`w-4 h-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
@@ -726,7 +739,7 @@ const ErrorMessage = ({ error, onRetry }) => (
   </div>
 );
 
-const VocilioDashboard = () => {
+const VocilioDashboard = ({ onLogout, orgContext }) => {
   const [activeSection, setActiveSection] = useState('home');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -746,6 +759,10 @@ const VocilioDashboard = () => {
   const [systemHealth, setSystemHealth] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // 🎯 NEW: Get user and tenant context
+  const userInfo = authManager.getUserInfo();
+  const tenantId = authManager.getTenantId();
 
   // Initialize services and load data
   useEffect(() => {
@@ -1105,6 +1122,13 @@ const VocilioDashboard = () => {
         { id: 'documentation', label: 'Documentation' },
         { id: 'system-status', label: 'System Status' }
       ]
+    },
+    { 
+      id: 'logout', 
+      label: 'Logout', 
+      icon: LogOut,
+      onClick: onLogout,
+      isAction: true 
     }
   ];
 

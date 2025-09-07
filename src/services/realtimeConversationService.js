@@ -1,7 +1,11 @@
 /**
- * Real-time Conversation Service
+ * 🎯 UPDATED: Real-time Conversation Service with Multi-Tenant Support
  * Handles STT → AI → TTS conversation flow with WebSocket/EventSource connectivity
+ * Now includes tenant isolation and enhanced auth integration
  */
+
+// Import auth manager for tenant context
+import { authManager } from './authManager.js';
 
 class RealtimeConversationService {
   constructor() {
@@ -9,6 +13,14 @@ class RealtimeConversationService {
     this.currentSession = null;
     this.isConnected = false;
     this.messageHandlers = new Map();
+    
+    // 🎯 ENHANCED: Performance tracking for ultra-low latency
+    this.performanceMetrics = {
+      connectionTime: 0,
+      messageLatency: [],
+      lastEventTime: null,
+      bargeInDetections: 0
+    };
     
     // Backend URLs from environment
     this.DIALOG_ORCHESTRATOR_URL = import.meta.env.VITE_DIALOG_ORCHESTRATOR_URL;
@@ -19,14 +31,27 @@ class RealtimeConversationService {
   }
 
   /**
-   * Start a new conversation session
+   * 🎯 ENHANCED: Start a conversation session with tenant context
    */
   async startSession(config = {}) {
     try {
       console.log('🚀 Starting conversation session with config:', config);
 
+      // 🎯 CRITICAL: Get tenant context from auth
+      const tenantId = authManager.getTenantId();
+      const userInfo = authManager.getUserInfo();
+      
+      if (!tenantId) {
+        throw new Error('No tenant context available. Please ensure user is authenticated.');
+      }
+
       const sessionRequest = {
         flow_id: config.flowId || 'default',
+        // 🎯 NEW: Tenant context
+        tenant_id: tenantId,
+        user_id: userInfo?.id || config.userId || 'anonymous',
+        organization_id: userInfo?.organization_name,
+        
         voice_settings: {
           provider: config.voiceProvider || 'azure',
           voice_id: config.voiceId || 'aria',
@@ -38,12 +63,16 @@ class RealtimeConversationService {
           enable_stt: true,
           enable_tts: true,
           enable_real_time: true,
+          // 🎯 NEW: Enable barge-in detection for ultra-low latency
+          enable_barge_in: true,
+          barge_in_threshold: 0.3,
           language: config.language || 'en-US'
         },
         metadata: {
           session_type: 'webclient_test',
           initiated_from: 'flow_designer',
-          user_id: config.userId || 'anonymous',
+          user_id: userInfo?.id || config.userId || 'anonymous',
+          tenant_id: tenantId,
           timestamp: new Date().toISOString()
         }
       };
