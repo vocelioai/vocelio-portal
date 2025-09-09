@@ -117,7 +117,7 @@ function App() {
       <div className="App">
         {/* Organization branding header */}
         {userAuthenticated && user && (
-          <div className="bg-blue-600 text-white px-4 py-2 text-sm">
+          <div className="bg-gray-900 text-gray-300 px-4 py-2 text-sm border-b border-gray-700">
             <div className="flex justify-between items-center max-w-7xl mx-auto">
               <span>
                 {user.organization_name} • {user.subdomain}.vocelio.com
