@@ -28,6 +28,9 @@ import RealTimeDashboard from './RealTimeDashboard';
 // ===== COPILOT PROMPT #5: Analytics & Reporting Dashboard =====
 import AnalyticsDashboard from '../analytics/AnalyticsDashboard';
 
+// ===== COPILOT PROMPT #6: Campaign Orchestration Interface =====
+import CampaignOrchestrationDashboard from '../campaigns/CampaignOrchestrationDashboard';
+
 // Channel Status Component
 const ChannelStatusCard = ({ channel, status, activeCount, metrics }) => {
   const getChannelIcon = (channelType) => {
@@ -515,11 +518,7 @@ const OmnichannelDashboard = () => {
           )}
 
           {activeTab === 'campaigns' && (
-            <div className="text-center py-12">
-              <Target className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Campaign Orchestration</h3>
-              <p className="text-gray-600">Multi-channel campaign management coming soon...</p>
-            </div>
+            <CampaignOrchestrationDashboard isActive={activeTab === 'campaigns'} />
           )}
 
           {activeTab === 'analytics' && (
