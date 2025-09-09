@@ -281,32 +281,32 @@ const HomeSection = ({ stats, liveCallsData, systemHealth, user }) => {
   const apiCards = [
     {
       id: 'voice-agent',
-      title: 'VOICE AGENT API',
-      description: 'A unified voice-to-voice API that enables natural-sounding conversations between humans and machines.',
+      title: 'AI VOICE AGENT',
+      description: 'Intelligent voice agents that enable natural-sounding conversations between humans and AI systems.',
       icon: <Mic className="w-6 h-6" />,
       gradient: 'from-cyan-400 to-blue-500',
       features: ['Real-time processing', 'Natural conversations', 'Multi-language support']
     },
     {
       id: 'speech-to-text',
-      title: 'SPEECH TO TEXT API',
-      description: 'Transcribe speech with unmatched accuracy, speed, and cost efficiency.',
+      title: 'SPEECH TRANSCRIPTION',
+      description: 'Advanced speech transcription services with unmatched accuracy, speed, and cost efficiency.',
       icon: <FileText className="w-6 h-6" />,
       gradient: 'from-purple-400 to-pink-500',
       features: ['99%+ accuracy', 'Lightning fast', 'Cost effective']
     },
     {
       id: 'audio-intelligence',
-      title: 'AUDIO INTELLIGENCE API',
-      description: 'Advanced audio intelligence for Enterprise-scale analysis and insights.',
+      title: 'AUDIO INTELLIGENCE',
+      description: 'Advanced audio intelligence services for Enterprise-scale analysis and insights.',
       icon: <Brain className="w-6 h-6" />,
       gradient: 'from-emerald-400 to-teal-500',
       features: ['Sentiment analysis', 'Topic extraction', 'Intent detection']
     },
     {
       id: 'text-to-speech',
-      title: 'TEXT TO SPEECH API',
-      description: 'Lightning fast, humanlike voice for real-time AI and high throughput applications.',
+      title: 'VOICE SYNTHESIS',
+      description: 'Lightning fast, human-like voice generation for real-time AI and high throughput applications.',
       icon: <Volume2 className="w-6 h-6" />,
       gradient: 'from-orange-400 to-red-500',
       features: ['Human-like voices', 'Real-time generation', 'High throughput']
@@ -339,10 +339,10 @@ const HomeSection = ({ stats, liveCallsData, systemHealth, user }) => {
         <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
           <div className="flex items-center gap-3 mb-3">
             <BarChart3 className="w-5 h-5 text-cyan-400" />
-            <span className="text-gray-300 text-sm">API Usage</span>
+            <span className="text-gray-300 text-sm">Total Calls</span>
           </div>
-          <div className="text-2xl font-bold text-white mb-1">{((stats.totalCalls || 12000) / 10000).toFixed(1)}M</div>
-          <div className="text-sm text-gray-400">Requests today</div>
+          <div className="text-2xl font-bold text-white mb-1">{(stats.totalCalls || 15678).toLocaleString()}</div>
+          <div className="text-sm text-gray-400">Total completed calls</div>
           <div className="mt-3 h-20 bg-gray-900/50 rounded flex items-end gap-1 p-2">
             {[...Array(12)].map((_, i) => (
               <div
