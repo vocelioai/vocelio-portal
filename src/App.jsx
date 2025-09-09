@@ -13,6 +13,9 @@ import UsageDashboard from './components/UsageDashboard.jsx';
 import { EnhancedReduxProvider, ReduxDevTools } from './providers/ReduxProvider.jsx';
 import PerformanceMonitor from './components/PerformanceMonitor.jsx';
 
+// ===== COPILOT PROMPT #4: WebSocket Integration =====
+import { WebSocketProvider } from './providers/WebSocketProvider.jsx';
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
@@ -214,13 +217,15 @@ function App() {
   );
 }
 
-// Wrap the entire app with Redux Provider
+// Wrap the entire app with Redux Provider and WebSocket Provider
 const AppWithRedux = () => {
   return (
     <EnhancedReduxProvider>
-      <App />
-      <ReduxDevTools />
-      <PerformanceMonitor />
+      <WebSocketProvider>
+        <App />
+        <ReduxDevTools />
+        <PerformanceMonitor />
+      </WebSocketProvider>
     </EnhancedReduxProvider>
   );
 };

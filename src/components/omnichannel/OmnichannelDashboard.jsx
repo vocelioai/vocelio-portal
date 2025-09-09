@@ -22,6 +22,9 @@ import { useOmnichannelWebSocket } from '../../hooks/useOmnichannelWebSocket';
 import OmnichannelChannelManager from './channels/OmnichannelChannelManager';
 import IntelligentRoutingPanel from './IntelligentRoutingPanel';
 
+// ===== COPILOT PROMPT #4: Real-Time WebSocket Integration =====
+import RealTimeDashboard from './RealTimeDashboard';
+
 // Channel Status Component
 const ChannelStatusCard = ({ channel, status, activeCount, metrics }) => {
   const getChannelIcon = (channelType) => {
@@ -330,6 +333,7 @@ const OmnichannelDashboard = () => {
   const tabs = [
     { id: 'overview', label: 'Channel Overview', icon: Activity },
     { id: 'channels', label: 'Live Channels', icon: Headphones }, // ===== COPILOT PROMPT #3 =====
+    { id: 'realtime', label: 'Real-Time Hub', icon: Wifi }, // ===== COPILOT PROMPT #4 =====
     { id: 'sessions', label: 'Active Sessions', icon: Users },
     { id: 'routing', label: 'Intelligent Routing', icon: Brain },
     { id: 'campaigns', label: 'Campaigns', icon: Target },
@@ -482,6 +486,16 @@ const OmnichannelDashboard = () => {
               <OmnichannelChannelManager 
                 isExpanded={channelManagerExpanded}
                 onToggleExpand={() => setChannelManagerExpanded(!channelManagerExpanded)}
+              />
+            </div>
+          )}
+
+          {/* ===== COPILOT PROMPT #4: Real-Time Hub Tab ===== */}
+          {activeTab === 'realtime' && (
+            <div className="h-full">
+              <RealTimeDashboard 
+                isActive={true}
+                onClose={() => setActiveTab('overview')}
               />
             </div>
           )}
