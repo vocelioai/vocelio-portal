@@ -5,9 +5,28 @@
 class AuthManager {
   constructor() {
     this.baseURL = 'https://auth-service-313373223340.us-central1.run.app';
+    
+    // Clean up any corrupted localStorage data first
+    this.cleanupCorruptedData();
+    
     this.token = localStorage.getItem('access_token');
     this.refreshToken = localStorage.getItem('refresh_token');
     this.userInfo = this.getUserInfo();
+  }
+
+  /**
+   * Clean up corrupted or invalid localStorage data
+   */
+  cleanupCorruptedData() {
+    const itemsToCheck = ['access_token', 'refresh_token', 'user_info'];
+    
+    itemsToCheck.forEach(key => {
+      const item = localStorage.getItem(key);
+      if (item === 'undefined' || item === 'null') {
+        console.warn(`Removing corrupted localStorage item: ${key}`);
+        localStorage.removeItem(key);
+      }
+    });
   }
 
   /**
@@ -207,7 +226,18 @@ class AuthManager {
 
   getUserInfo() {
     const userInfo = localStorage.getItem('user_info');
-    return userInfo ? JSON.parse(userInfo) : null;
+    if (!userInfo || userInfo === 'undefined' || userInfo === 'null') {
+      return null;
+    }
+    
+    try {
+      return JSON.parse(userInfo);
+    } catch (error) {
+      console.warn('Failed to parse user info from localStorage:', error);
+      // Clean up invalid data
+      localStorage.removeItem('user_info');
+      return null;
+    }
   }
 
   /**
