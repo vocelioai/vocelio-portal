@@ -1,9 +1,13 @@
 import axios from 'axios';
+import { getCurrentConfig } from '../config/environment.js';
+
+// Get current environment configuration
+const config = getCurrentConfig();
 
 // Service URLs Configuration
 const SERVICE_URLS = {
-  // Core Services
-  API_GATEWAY: import.meta.env.VITE_API_GATEWAY_URL || process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:3001/api',
+  // Core Services - Use environment config for development
+  API_GATEWAY: config.API_GATEWAY_URL || import.meta.env.VITE_API_GATEWAY_URL || 'https://api-gateway-313373223340.us-central1.run.app',
   ADMIN_DASHBOARD: import.meta.env.VITE_ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL,
   
   // AI Intelligence Services
@@ -34,8 +38,8 @@ const SERVICE_URLS = {
   DIALOG_ORCHESTRATOR: import.meta.env.VITE_DIALOG_ORCHESTRATOR_URL || process.env.NEXT_PUBLIC_DIALOG_ORCHESTRATOR_URL,
   AUTONOMOUS_ORCHESTRATOR: import.meta.env.VITE_AUTONOMOUS_ORCHESTRATOR_URL || process.env.NEXT_PUBLIC_AUTONOMOUS_ORCHESTRATOR_URL,
   
-  // Analytics Services
-  ADVANCED_ANALYTICS: import.meta.env.VITE_ADVANCED_ANALYTICS_URL || process.env.NEXT_PUBLIC_ADVANCED_ANALYTICS_URL,
+  // Analytics Services - Use environment config
+  ADVANCED_ANALYTICS: config.ADVANCED_ANALYTICS_API_URL || import.meta.env.VITE_ADVANCED_ANALYTICS_URL || 'https://advanced-analytics-313373223340.us-central1.run.app',
   ANALYTICS_SERVICE: import.meta.env.VITE_ANALYTICS_SERVICE_URL || process.env.NEXT_PUBLIC_ANALYTICS_SERVICE_URL,
   REAL_TIME_MONITORING: import.meta.env.VITE_REAL_TIME_MONITORING_URL || process.env.NEXT_PUBLIC_REAL_TIME_MONITORING_URL,
   

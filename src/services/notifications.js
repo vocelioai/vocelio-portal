@@ -253,9 +253,28 @@ class NotificationService {
       info: '/sounds/notification.mp3'
     };
 
-    const audio = new Audio(sounds[type] || sounds.info);
-    audio.volume = 0.3;
-    audio.play().catch(console.warn);
+    const audioUrl = sounds[type] || sounds.info;
+    
+    try {
+      const audio = new Audio(audioUrl);
+      audio.volume = 0.3;
+      
+      // Handle audio loading and playback errors gracefully
+      audio.addEventListener('error', (e) => {
+        console.warn(`🔇 Audio file not found: ${audioUrl}. Skipping sound notification.`);
+      });
+      
+      audio.play().catch((error) => {
+        // Ignore autoplay policy errors in development
+        if (error.name === 'NotAllowedError') {
+          console.info('🔇 Audio autoplay blocked by browser policy (normal in development)');
+        } else {
+          console.warn('🔇 Audio playback failed:', error.message);
+        }
+      });
+    } catch (error) {
+      console.warn('🔇 Audio initialization failed:', error.message);
+    }
   }
 
   // Success animation effect

@@ -1,7 +1,10 @@
-FROM node:18-alpine
+# ===== COPILOT PROMPT #8: Production Docker Configuration =====
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Multi-stage build for optimized production deployment
+FROM node:18-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++
 
 # Create app directory
 WORKDIR /app
@@ -9,30 +12,55 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci && npm cache clean --force
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Install dumb-init for proper signal handling and curl for health checks
+RUN apk add --no-cache dumb-init curl
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files for production dependencies
+COPY package*.json ./
+
+# Install only production dependencies
 RUN npm ci --only=production && npm cache clean --force
 
-# Copy built application
-COPY dist ./dist
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy server files
 COPY server.js ./
 
-# Create non-root user
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S vocilio -u 1001 -G nodejs
+    adduser -S vocelio -u 1001 -G nodejs
 
 # Change ownership of app directory
-RUN chown -R vocilio:nodejs /app
-USER vocilio
+RUN chown -R vocelio:nodejs /app
+USER vocelio
 
 # Expose port
 EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/health', (r) => { \
-    if (r.statusCode !== 200) throw new Error('Health check failed') \
-  }).on('error', () => { throw new Error('Health check failed') })"
+# Add environment variables for production
+ENV NODE_ENV=production
+ENV PORT=8080
 
-# Start the application
+# Health check with improved endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Start the application with proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "server.js"]

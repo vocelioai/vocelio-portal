@@ -2,6 +2,9 @@
 // WEBSOCKET SERVICE - Real-time Communication Hub
 // ============================================================================
 import { realtimeApi } from './api';
+import { getCurrentConfig } from '../config/environment.js';
+
+const config = getCurrentConfig();
 
 class WebSocketService {
   constructor() {
@@ -17,7 +20,13 @@ class WebSocketService {
   // Initialize WebSocket connection
   connect() {
     try {
-      this.ws = realtimeApi.connect();
+      // Use mock WebSocket in development if enabled
+      if (config.USE_MOCK_DATA && config.DEBUG_MODE) {
+        console.log('🔧 WebSocket: Using mock connection for development');
+        this.ws = new WebSocket('ws://localhost:3000/ws');
+      } else {
+        this.ws = realtimeApi.connect();
+      }
       this.setupEventHandlers();
     } catch (error) {
       console.error('❌ WebSocket connection failed:', error);

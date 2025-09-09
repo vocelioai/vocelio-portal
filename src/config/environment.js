@@ -27,13 +27,16 @@ export const ENV_CONFIG = {
   
   // Development Environment
   DEVELOPMENT: {
-    OMNICHANNEL_API_URL: process.env.NODE_ENV === 'development' ? 'http://localhost:8080' : 'https://omnichannel-hub-313373223340.us-central1.run.app',
-    OMNICHANNEL_WS_URL: process.env.NODE_ENV === 'development' ? 'ws://localhost:8080/ws' : 'wss://omnichannel-hub-313373223340.us-central1.run.app/ws',
+    OMNICHANNEL_API_URL: 'http://localhost:3000/api', // Use local mock API
+    OMNICHANNEL_WS_URL: 'ws://localhost:3000/ws', // Use local mock WebSocket
+    ADVANCED_ANALYTICS_API_URL: 'http://localhost:3000/api/analytics', // Local mock analytics
+    API_GATEWAY_URL: 'http://localhost:3000/api/gateway', // Local mock gateway
     APP_ENV: 'development',
     ENABLE_ANALYTICS: false,
     ENABLE_ERROR_REPORTING: false,
     ENABLE_PWA: true,
-    DEBUG_MODE: true
+    DEBUG_MODE: true,
+    USE_MOCK_DATA: true // Enable mock data for development
   }
 };
 
