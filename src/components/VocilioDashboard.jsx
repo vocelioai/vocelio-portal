@@ -1236,9 +1236,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
       label: 'Omnichannel Hub', 
       icon: MessageSquare,
       subitems: [
-        { id: 'omnichannel-overview', label: 'Channel Overview' },
-        { id: 'omnichannel-sessions', label: 'Active Sessions' },
-        { id: 'omnichannel-routing', label: 'Intelligent Routing' },
         { id: 'omnichannel-campaigns', label: 'Campaign Orchestration' }
       ]
     },
