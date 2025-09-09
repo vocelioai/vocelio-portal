@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Omnichannel API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .endpoint { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .loading { color: #666; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .data { background: #f8f9fa; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Omnichannel API Test</h1>
+    
+    <div class="endpoint">
+        <h3>1. Health Check</h3>
+        <div id="health-status" class="loading">Testing...</div>
+        <div id="health-data" class="data"></div>
+    </div>
+    
+    <div class="endpoint">
+        <h3>2. Analytics Dashboard</h3>
+        <div id="analytics-status" class="loading">Testing...</div>
+        <div id="analytics-data" class="data"></div>
+    </div>
+    
+    <div class="endpoint">
+        <h3>3. Channel Integrations</h3>
+        <div id="channels-status" class="loading">Testing...</div>
+        <div id="channels-data" class="data"></div>
+    </div>
+    
+    <div class="endpoint">
+        <h3>4. Active Sessions</h3>
+        <div id="sessions-status" class="loading">Testing...</div>
+        <div id="sessions-data" class="data"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://omnichannel-hub-313373223340.us-central1.run.app';
+        
+        async function testEndpoint(endpoint, statusId, dataId) {
+            try {
+                console.log(`Testing: ${API_BASE}${endpoint}`);
+                const response = await fetch(`${API_BASE}${endpoint}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById(statusId).innerHTML = `✅ Success (${response.status})`;
+                document.getElementById(statusId).className = 'success';
+                document.getElementById(dataId).innerHTML = JSON.stringify(data, null, 2);
+                
+                console.log(`${endpoint} success:`, data);
+                return data;
+            } catch (error) {
+                document.getElementById(statusId).innerHTML = `❌ Failed: ${error.message}`;
+                document.getElementById(statusId).className = 'error';
+                document.getElementById(dataId).innerHTML = error.stack || error.message;
+                
+                console.error(`${endpoint} failed:`, error);
+                throw error;
+            }
+        }
+        
+        // Test all endpoints
+        async function runTests() {
+            console.log('🚀 Starting Omnichannel API Tests...');
+            
+            try {
+                await testEndpoint('/health', 'health-status', 'health-data');
+                await testEndpoint('/analytics/dashboard', 'analytics-status', 'analytics-data');
+                await testEndpoint('/channels/integrations', 'channels-status', 'channels-data');
+                await testEndpoint('/sessions/active', 'sessions-status', 'sessions-data');
+                
+                console.log('✅ All tests completed successfully!');
+            } catch (error) {
+                console.error('❌ Some tests failed:', error);
+            }
+        }
+        
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

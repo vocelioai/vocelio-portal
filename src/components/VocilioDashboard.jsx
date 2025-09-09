@@ -8,7 +8,7 @@ import {
   ChevronDown, ChevronRight, ExternalLink, Mail, MessageSquare, Loader,
   Activity, Wifi, WifiOff, Server, Database, Cloud, 
   LineChart, PieChart, BarChart, TrendingDown, AlertTriangle, LogOut,
-  Wallet, Receipt, PieChart as UsageIcon, PhoneForwarded, Building2
+  Wallet, Receipt, PieChart as UsageIcon, PhoneForwarded, Building2, User
 } from 'lucide-react';
 
 // 🎯 UPDATED: Import enhanced services with multi-tenant support
@@ -51,6 +51,8 @@ import VoicesPageNew from './VoicesPageNew';
 
 // Import tool integration settings
 import ToolIntegrationSettings from './settings/ToolIntegrationSettings.jsx';
+
+
 
 // Import call transfer components
 import DepartmentsPage from './call-transfer/DepartmentsPage.jsx';
@@ -574,18 +576,32 @@ const BillingSection = () => (
   </div>
 );
 
-const SettingsSection = () => {
-  const [activeSettingsTab, setActiveSettingsTab] = useState('integrations');
+const SettingsSection = ({ user }) => {
+  const [activeSettingsTab, setActiveSettingsTab] = useState('account');
 
   const settingsTabs = [
-    { id: 'integrations', label: 'Tool Integrations' },
     { id: 'account', label: 'Account Settings' },
-    { id: 'preferences', label: 'Preferences' }
+    { id: 'advanced', label: 'Advanced Settings' }
   ];
+
+  const handleAdvancedSettings = () => {
+    // Navigate to the comprehensive settings page
+    window.open('/settings', '_blank');
+  };
 
   return (
     <div className="animate-fade-in">
-      <h2 className="text-2xl font-bold mb-6">Settings</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Settings</h2>
+        <button
+          onClick={handleAdvancedSettings}
+          className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Settings className="h-4 w-4" />
+          <span>Advanced Settings</span>
+          <ExternalLink className="h-4 w-4" />
+        </button>
+      </div>
       
       {/* Settings Tabs */}
       <div className="mb-6">
@@ -607,17 +623,122 @@ const SettingsSection = () => {
       </div>
 
       {/* Settings Content */}
-      {activeSettingsTab === 'integrations' && <ToolIntegrationSettings />}
-      {activeSettingsTab === 'account' && (
+      {activeSettingsTab === 'advanced' && (
         <div className="bg-white p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">Account Settings</h3>
-          <p className="text-gray-600">Account and profile settings will be available here.</p>
+          <div className="text-center">
+            <div className="h-16 w-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Settings className="h-8 w-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-semibold mb-4">Comprehensive Settings</h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Access the full settings interface with user profile, voice preferences, organization management, billing, and more.
+            </p>
+            <button
+              onClick={handleAdvancedSettings}
+              className="inline-flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Settings className="h-5 w-5" />
+              <span>Open Advanced Settings</span>
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
-      {activeSettingsTab === 'preferences' && (
+      {activeSettingsTab === 'account' && (
         <div className="bg-white p-6 rounded-lg">
-          <h3 className="text-lg font-semibold mb-4">User Preferences</h3>
-          <p className="text-gray-600">User preferences and customization options will be available here.</p>
+          <h3 className="text-lg font-semibold mb-6">Account Information</h3>
+          
+          {/* Current User Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-500">Name</label>
+                <p className="text-gray-900 font-medium">
+                  {user?.user_metadata?.first_name} {user?.user_metadata?.last_name}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500">Email</label>
+                <p className="text-gray-900">{user?.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500">Organization</label>
+                <p className="text-gray-900">{user?.organization_name}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-500">Role</label>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                  {user?.role || 'User'}
+                </span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500">Subscription</label>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 capitalize">
+                  {user?.subscription_tier || 'Starter'}
+                </span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-500">Subdomain</label>
+                <p className="text-gray-900">{user?.subdomain}.vocelio.com</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="border-t pt-6">
+            <h4 className="text-md font-semibold mb-4">Quick Actions</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <button 
+                onClick={handleAdvancedSettings}
+                className="flex items-center justify-center space-x-2 p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-colors"
+              >
+                <User className="h-4 w-4" />
+                <span className="text-sm font-medium">Edit Profile</span>
+              </button>
+              <button 
+                onClick={handleAdvancedSettings}
+                className="flex items-center justify-center space-x-2 p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-colors"
+              >
+                <Shield className="h-4 w-4" />
+                <span className="text-sm font-medium">Security</span>
+              </button>
+              <button 
+                onClick={handleAdvancedSettings}
+                className="flex items-center justify-center space-x-2 p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-colors"
+              >
+                <Mic className="h-4 w-4" />
+                <span className="text-sm font-medium">Voice Settings</span>
+              </button>
+              <button 
+                onClick={handleAdvancedSettings}
+                className="flex items-center justify-center space-x-2 p-3 border border-gray-300 rounded-lg hover:border-blue-500 hover:text-600 transition-colors"
+              >
+                <Bell className="h-4 w-4" />
+                <span className="text-sm font-medium">Notifications</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Advanced Settings CTA */}
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900">Need More Settings?</h4>
+                <p className="text-sm text-blue-700">Access the comprehensive settings interface for full control.</p>
+              </div>
+              <button
+                onClick={handleAdvancedSettings}
+                className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
+                <Settings className="h-4 w-4" />
+                <span>Advanced Settings</span>
+                <ExternalLink className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1165,7 +1286,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
         { id: 'account-settings', label: 'Account Settings' },
         { id: 'tool-integrations', label: 'Tool Integrations' },
         { id: 'team-management', label: 'Team Management' },
-        { id: 'integrations', label: 'Integrations' },
         { id: 'compliance', label: 'Compliance' },
         { id: 'api-keys', label: 'API Keys' }
       ]
@@ -1346,8 +1466,9 @@ const VocilioDashboard = ({ onLogout, user }) => {
         return <BillingSection />;
       case 'settings':
       case 'account-settings':
+        return <SettingsSection user={user} />;
       case 'tool-integrations':
-        return <SettingsSection />;
+        return <ToolIntegrationSettings />;
       case 'system-health':
         return <SystemHealthSection systemHealth={systemHealth} />;
       default:

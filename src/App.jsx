@@ -10,6 +10,9 @@ import TransactionHistory from './components/TransactionHistory.jsx';
 import UsageDashboard from './components/UsageDashboard.jsx';
 import OmnichannelApiTest from './components/OmnichannelApiTest.jsx';
 
+// Import the comprehensive Settings system
+import { Settings } from './pages/Settings';
+
 // ===== COPILOT PROMPT #2: Redux Integration =====
 import { EnhancedReduxProvider, ReduxDevTools } from './providers/ReduxProvider.jsx';
 import PerformanceMonitor from './components/PerformanceMonitor.jsx';
@@ -218,6 +221,16 @@ function App() {
                   <OmnichannelApiTest />
                 </div>
               </div>
+            } 
+          />
+          
+          {/* Comprehensive Settings Route */}
+          <Route 
+            path="/settings/*" 
+            element={
+              <ProtectedRoute>
+                <Settings />
+              </ProtectedRoute>
             } 
           />
           
