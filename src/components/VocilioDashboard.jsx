@@ -26,7 +26,6 @@ import UsageDashboard from './UsageDashboard.jsx';
 // Import world-class services
 import serviceManager, { 
   dashboardApi, 
-  campaignsApi, 
   contactsApi, 
   phoneApi, 
   voiceApi, 
@@ -262,7 +261,7 @@ const NavigationItem = ({ item, activeSection, setActiveSection, collapsed }) =>
 };
 
 // Enhanced Home Section Component with Real-time Data
-const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) => {
+const HomeSection = ({ stats, liveCallsData, systemHealth }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -403,9 +402,9 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Active Campaigns</h3>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">{Array.isArray(activeCampaigns) ? activeCampaigns.length : 0} active</span>
+              <span className="text-sm text-gray-500">Omnichannel Hub</span>
               <button 
-                onClick={() => setActiveSection('campaigns')}
+                onClick={() => setActiveSection('omnichannel-campaigns')}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
               >
                 View All
@@ -413,42 +412,17 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
             </div>
           </div>
           <div className="space-y-4">
-            {Array.isArray(activeCampaigns) ? activeCampaigns.slice(0, 3).map((campaign) => (
-              <div key={campaign.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-all">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-gray-900">{campaign.name}</h4>
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                      {campaign.status}
-                    </span>
-                    {campaign.aiOptimized && (
-                      <div className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Brain className="w-2.5 h-2.5 text-blue-600" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${campaign.progress || 0}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>{campaign.calls || 0} calls</span>
-                  <span>{campaign.appointments || 0} appointments</span>
-                  <span className="text-green-600 font-medium">
-                    {((campaign.appointments || 0) / (campaign.calls || 1) * 100).toFixed(1)}% conv.
-                  </span>
-                </div>
-              </div>
-            )) : (
-              <div className="text-center py-8 text-gray-500">
-                <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-lg font-medium mb-2">No Active Campaigns</p>
-                <p className="text-sm">Create your first campaign to get started</p>
-              </div>
-            )}
+            <div className="text-center py-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-100">
+              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-blue-500" />
+              <p className="text-lg font-medium mb-2 text-gray-900">Campaign Orchestration Available</p>
+              <p className="text-sm text-gray-600 mb-4">Manage multi-channel campaigns through the Omnichannel Hub</p>
+              <button 
+                onClick={() => setActiveSection('omnichannel-campaigns')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 text-sm font-medium"
+              >
+                Launch Omnichannel Campaigns
+              </button>
+            </div>
           </div>
         </div>
 
@@ -540,18 +514,6 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
 };
 
 // Placeholder components for other sections
-const CampaignsSection = ({ activeCampaigns, onRefresh }) => (
-  <div className="animate-fade-in">
-    <h2 className="text-2xl font-bold mb-6">Campaign Management</h2>
-    <div className="bg-white p-6 rounded-lg">
-      <p>Campaigns section - Enhanced with real-time data</p>
-      <button onClick={onRefresh} className="mt-4 bg-blue-600 text-white px-4 py-2 rounded">
-        Refresh Data
-      </button>
-    </div>
-  </div>
-);
-
 const LiveMonitorSection = ({ liveCallsData, stats }) => (
   <div className="animate-fade-in">
     <h2 className="text-2xl font-bold mb-6">Live Monitor</h2>
@@ -793,7 +755,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
     activeCalls: 0,
     conversionRate: 0
   });
-  const [activeCampaigns, setActiveCampaigns] = useState([]);
   const [liveCallsData, setLiveCallsData] = useState([]);
   const [systemHealth, setSystemHealth] = useState({});
   const [notifications, setNotifications] = useState([]);
@@ -857,11 +818,9 @@ const VocilioDashboard = ({ onLogout, user }) => {
       // Use Promise.allSettled for resilient data loading
       const [
         statsResult,
-        campaignResult,
         liveCallsResult
       ] = await Promise.allSettled([
         dashboardApi.getStats(),
-        dashboardApi.getActiveCampaigns(),
         dashboardApi.getLiveCalls()
       ]);
 
@@ -880,14 +839,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
         });
       }
 
-      // Update campaigns with performance data
-      if (campaignResult.status === 'fulfilled') {
-        setActiveCampaigns(campaignResult.value.data.campaigns || [
-          { id: 1, name: 'Real Estate Q4 Push', status: 'active', progress: 65, calls: 1247, connected: 874, appointments: 89 },
-          { id: 2, name: 'Follow-up Campaign', status: 'active', progress: 23, calls: 456, connected: 321, appointments: 34 }
-        ]);
-      }
-
       // Update live calls with analysis
       if (liveCallsResult.status === 'fulfilled') {
         setLiveCallsData(liveCallsResult.value.data.calls || [
@@ -898,7 +849,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
       }
 
       // Handle any failed requests gracefully
-      const failedRequests = [statsResult, campaignResult, liveCallsResult]
+      const failedRequests = [statsResult, liveCallsResult]
         .filter(result => result.status === 'rejected');
       
       if (failedRequests.length > 0) {
@@ -973,23 +924,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
       }
     });
 
-    // Subscribe to campaign updates
-    const unsubscribeCampaigns = wsService.subscribe('campaign_update', (campaignData) => {
-      setActiveCampaigns(prev => 
-        prev.map(campaign => 
-          campaign.id === campaignData.id 
-            ? { ...campaign, ...campaignData }
-            : campaign
-        )
-      );
-
-      notificationService.showCampaignUpdate(
-        campaignData,
-        campaignData.status === 'completed' ? 'success' : 'info',
-        `Campaign "${campaignData.name}" updated`
-      );
-    });
-
     // Subscribe to AI insights
     const unsubscribeInsights = wsService.subscribe('ai_insight', (insight) => {
       notificationService.showAiInsight(insight, insight.priority);
@@ -1005,7 +939,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
 
     return () => {
       unsubscribeCalls();
-      unsubscribeCampaigns();
       unsubscribeInsights();
       unsubscribeAlerts();
     };
@@ -1087,17 +1020,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
   
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { 
-      id: 'campaigns', 
-      label: 'Campaigns', 
-      icon: BarChart3,
-      subitems: [
-        { id: 'active-campaigns', label: 'Active Campaigns' },
-        { id: 'campaign-builder', label: 'Campaign Builder' },
-        { id: 'live-monitor', label: 'Live Monitor' },
-        { id: 'performance-reports', label: 'Performance Reports' }
-      ]
-    },
     { 
       id: 'calling', 
       label: 'Calling', 
@@ -1228,16 +1150,10 @@ const VocilioDashboard = ({ onLogout, user }) => {
         return (
           <HomeSection 
             stats={stats} 
-            activeCampaigns={activeCampaigns} 
             liveCallsData={liveCallsData}
             systemHealth={systemHealth}
           />
         );
-      case 'campaigns':
-      case 'active-campaigns':
-        return <CampaignsSection activeCampaigns={activeCampaigns} onRefresh={loadDashboardData} />;
-      case 'live-monitor':
-        return <LiveMonitorSection liveCallsData={liveCallsData} stats={stats} />;
       case 'calling':
       case 'phone-numbers':
         return <PhoneNumbersSection />;
@@ -1377,7 +1293,6 @@ const VocilioDashboard = ({ onLogout, user }) => {
         return (
           <HomeSection 
             stats={stats} 
-            activeCampaigns={activeCampaigns} 
             liveCallsData={liveCallsData}
             systemHealth={systemHealth}
           />
