@@ -129,25 +129,45 @@ export class MockAPIServer {
       return null; // Let real API handle it
     }
 
+    // Log the request for debugging
+    console.log(`🔧 Mock API: Intercepting request to: ${url}`);
+
     // Add delay to simulate network
     await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
 
-    const pathname = new URL(url).pathname;
-    const method = options.method || 'GET';
+    // Handle both absolute and relative URLs
+    let pathname;
+    try {
+      if (url.startsWith('http') || url.startsWith('ws')) {
+        pathname = new URL(url).pathname;
+      } else if (url.startsWith('/')) {
+        pathname = url.split('?')[0]; // Remove query params, keep path
+      } else {
+        pathname = '/' + url.split('?')[0]; // Ensure leading slash
+      }
+    } catch (error) {
+      console.warn('🔧 Mock API: Invalid URL format:', url);
+      pathname = url.startsWith('/') ? url : '/' + url;
+    }
 
+    const method = options.method || 'GET';
     console.log(`🔧 Mock API: ${method} ${pathname}`);
 
-    // Route handlers
+    // Route handlers - Handle both direct API and gateway paths
     switch (pathname) {
       case '/api/dashboard/stats':
       case '/api/gateway/dashboard/stats':
+      case '/dashboard/stats':
         return this.mockResponse(mockDashboardStats);
 
       case '/api/calls/live':
       case '/api/gateway/calls/live':
+      case '/calls/live':
         return this.mockResponse(mockLiveCalls);
 
       case '/api/campaigns/active':
+      case '/api/gateway/campaigns/active':
+      case '/campaigns/active':
       case '/api/analytics/campaigns/performance':
         return this.mockResponse(mockCampaigns);
 
@@ -176,11 +196,24 @@ export class MockAPIServer {
         return this.mockResponse({ status: 'healthy', timestamp: new Date().toISOString() });
 
       default:
-        // Return mock data for unhandled routes
+        // Handle common API patterns with meaningful mock data
+        if (pathname.includes('/campaigns')) {
+          return this.mockResponse(mockCampaigns);
+        } else if (pathname.includes('/calls')) {
+          return this.mockResponse(mockLiveCalls);
+        } else if (pathname.includes('/stats') || pathname.includes('/dashboard')) {
+          return this.mockResponse(mockDashboardStats);
+        } else if (pathname.includes('/analytics')) {
+          return this.mockResponse(mockAnalytics.overview);
+        }
+        
+        // Generic fallback for unhandled routes
+        console.log(`🔧 Mock API: Unhandled route ${pathname} - returning generic mock data`);
         return this.mockResponse({ 
           message: `Mock endpoint: ${pathname}`,
           data: [],
-          success: true 
+          success: true,
+          timestamp: new Date().toISOString()
         });
     }
   }
@@ -316,9 +349,34 @@ if (typeof window !== 'undefined' && MockAPIServer.isEnabled()) {
     return new OriginalWebSocket(url, protocols);
   };
   
-  // Copy static properties
+  // Copy static properties safely
   Object.setPrototypeOf(window.WebSocket, OriginalWebSocket);
-  Object.assign(window.WebSocket, OriginalWebSocket);
+  
+  // Copy only enumerable, writable properties
+  for (const prop in OriginalWebSocket) {
+    try {
+      if (OriginalWebSocket.hasOwnProperty(prop)) {
+        const descriptor = Object.getOwnPropertyDescriptor(OriginalWebSocket, prop);
+        if (descriptor && descriptor.writable !== false) {
+          window.WebSocket[prop] = OriginalWebSocket[prop];
+        }
+      }
+    } catch (error) {
+      // Ignore read-only property assignment errors
+      console.debug(`Skipping read-only property: ${prop}`);
+    }
+  }
+  
+  // Ensure WebSocket constants are available using defineProperty
+  try {
+    Object.defineProperty(window.WebSocket, 'CONNECTING', { value: 0, writable: false });
+    Object.defineProperty(window.WebSocket, 'OPEN', { value: 1, writable: false });
+    Object.defineProperty(window.WebSocket, 'CLOSING', { value: 2, writable: false });
+    Object.defineProperty(window.WebSocket, 'CLOSED', { value: 3, writable: false });
+  } catch (error) {
+    // Constants may already be defined, ignore errors
+    console.debug('WebSocket constants already defined or cannot be set');
+  }
 }
 
 export default MockAPIServer;

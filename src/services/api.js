@@ -8,6 +8,7 @@ const config = getCurrentConfig();
 const SERVICE_URLS = {
   // Core Services - Use environment config for development
   API_GATEWAY: config.API_GATEWAY_URL || import.meta.env.VITE_API_GATEWAY_URL || 'https://api-gateway-313373223340.us-central1.run.app',
+  OMNICHANNEL_HUB: config.OMNICHANNEL_API_URL || import.meta.env.VITE_OMNICHANNEL_HUB_URL || 'https://omnichannel-hub-313373223340.us-central1.run.app',
   ADMIN_DASHBOARD: import.meta.env.VITE_ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL,
   
   // AI Intelligence Services
@@ -330,111 +331,97 @@ const apiService = new ApiService();
 // Export main API instance for backward compatibility
 export const api = apiService.getService('API_GATEWAY');
 
-// ENHANCED DASHBOARD API - World Class Implementation
+// ENHANCED DASHBOARD API - Real Omnichannel Backend Integration
 const dashboardApi = {
-  // Real-time dashboard statistics with predictive intelligence
+  // Real-time dashboard statistics from omnichannel hub
   getStats: async () => {
     try {
-      const mainStats = await api.get('/dashboard/stats');
+      // Use real omnichannel hub analytics endpoint
+      const omnichannelService = apiService.getService('OMNICHANNEL_HUB');
+      const dashboardStats = await omnichannelService.get('/analytics/dashboard');
       
-      // Try to get AI insights but don't fail if service is unavailable
-      let aiInsights = {};
-      try {
-        const insights = await apiService.getService('AI_VOICE_INTELLIGENCE').get('/insights/summary');
-        aiInsights = insights.data || {};
-      } catch (error) {
-        console.warn('AI insights unavailable:', error.message);
-      }
-
-      return {
-        data: {
-          ...mainStats.data,
-          aiInsights
-        }
-      };
+      console.log('✅ Real Dashboard Stats from Omnichannel Hub:', dashboardStats.data);
+      return dashboardStats;
     } catch (error) {
       console.error('Dashboard API error:', error);
-      // Return mock data for development when API is not ready
-      if (error.response?.status === 404) {
+      
+      // If omnichannel hub is unavailable, try gateway as fallback
+      try {
+        const fallbackStats = await api.get('/dashboard/stats');
+        return fallbackStats;
+      } catch (fallbackError) {
+        console.error('Fallback dashboard API also failed:', fallbackError);
+        // Return minimal structure for development
         return {
           data: {
-            totalCalls: 0,
-            activeCalls: 0,
-            successRate: 0,
-            avgDuration: 0,
-            aiInsights: {}
+            totalSessions: 0,
+            activeSessions: 0,
+            channelsOnline: 0,
+            avgResponseTime: 0,
+            customerSatisfaction: 0,
+            resolutionRate: 0,
+            timestamp: new Date().toISOString()
           }
         };
       }
-      throw error;
     }
   },
 
-  // Live calls with real-time monitoring
+  // Live sessions from omnichannel hub
   getLiveCalls: async () => {
     try {
-      const mainCalls = await api.get('/calls/live');
+      // Use real omnichannel hub sessions endpoint
+      const omnichannelService = apiService.getService('OMNICHANNEL_HUB');
+      const activeSessions = await omnichannelService.get('/sessions/active');
       
-      let analysis = {};
-      try {
-        const analysisData = await apiService.getService('REAL_TIME_MONITORING').get('/calls/analysis');
-        analysis = analysisData.data || {};
-      } catch (error) {
-        console.warn('Real-time analysis unavailable:', error.message);
-      }
-
-      return {
-        data: {
-          calls: mainCalls.data || [],
-          analysis
-        }
-      };
+      console.log('✅ Real Active Sessions from Omnichannel Hub:', activeSessions.data);
+      return activeSessions;
     } catch (error) {
-      console.error('Live calls API error:', error);
-      // Return mock data for development when API is not ready
-      if (error.response?.status === 404) {
+      console.error('Live sessions API error:', error);
+      
+      // Fallback to gateway
+      try {
+        const fallbackSessions = await api.get('/calls/live');
+        return fallbackSessions;
+      } catch (fallbackError) {
+        console.error('Fallback sessions API also failed:', fallbackError);
         return {
           data: {
-            calls: [],
-            analysis: {}
+            sessions: [],
+            totalCount: 0,
+            timestamp: new Date().toISOString()
           }
         };
       }
-      throw error;
     }
   },
 
-  // Active campaigns with performance metrics
+  // Active campaigns from omnichannel hub
   getActiveCampaigns: async () => {
     try {
-      const campaigns = await api.get('/campaigns/active');
+      // Use real omnichannel hub campaigns endpoint
+      const omnichannelService = apiService.getService('OMNICHANNEL_HUB');
+      const activeCampaigns = await omnichannelService.get('/campaigns/active');
       
-      let performance = {};
-      try {
-        const perfData = await apiService.getService('ADVANCED_ANALYTICS').get('/campaigns/performance');
-        performance = perfData.data || {};
-      } catch (error) {
-        console.warn('Campaign analytics unavailable:', error.message);
-      }
-
-      return {
-        data: {
-          campaigns: campaigns.data || [],
-          performance
-        }
-      };
+      console.log('✅ Real Active Campaigns from Omnichannel Hub:', activeCampaigns.data);
+      return activeCampaigns;
     } catch (error) {
       console.error('Campaigns API error:', error);
-      // Return mock data for development when API is not ready
-      if (error.response?.status === 404) {
+      
+      // Fallback to gateway
+      try {
+        const fallbackCampaigns = await api.get('/campaigns/active');
+        return fallbackCampaigns;
+      } catch (fallbackError) {
+        console.error('Fallback campaigns API also failed:', fallbackError);
         return {
           data: {
             campaigns: [],
-            performance: {}
+            totalCount: 0,
+            timestamp: new Date().toISOString()
           }
         };
       }
-      throw error;
     }
   },
 

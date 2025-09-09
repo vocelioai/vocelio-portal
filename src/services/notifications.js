@@ -10,8 +10,38 @@ class NotificationService {
     this.defaultDuration = 5000; // 5 seconds
     this.permission = 'default';
     this.soundEnabled = true;
+    this.audioContext = null;
+    this.audioInitialized = false;
     
     this.requestPermission();
+    this.initializeAudioOnUserGesture();
+  }
+
+  // Initialize AudioContext after user gesture to comply with autoplay policy
+  initializeAudioOnUserGesture() {
+    const initAudio = () => {
+      if (!this.audioContext && typeof window !== 'undefined') {
+        try {
+          this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          this.audioInitialized = true;
+          console.log('🔊 AudioContext initialized for notifications');
+          
+          // Remove listeners after first initialization
+          ['click', 'keydown', 'touchstart'].forEach(event => {
+            document.removeEventListener(event, initAudio, { once: true });
+          });
+        } catch (error) {
+          console.warn('🔇 AudioContext initialization failed:', error.message);
+        }
+      }
+    };
+
+    // Listen for various user interaction events
+    if (typeof document !== 'undefined') {
+      ['click', 'keydown', 'touchstart'].forEach(event => {
+        document.addEventListener(event, initAudio, { once: true });
+      });
+    }
   }
 
   // Request browser notification permission
@@ -246,9 +276,15 @@ class NotificationService {
   playNotificationSound(type) {
     if (!this.soundEnabled) return;
 
+    // In development, create a silent audio context instead of loading files
+    if (process.env.NODE_ENV === 'development') {
+      this.createSilentNotification(type);
+      return;
+    }
+
     const sounds = {
       success: '/sounds/success.mp3',
-      error: '/sounds/error.mp3',
+      error: '/sounds/error.mp3', 
       warning: '/sounds/warning.mp3',
       info: '/sounds/notification.mp3'
     };
@@ -261,19 +297,78 @@ class NotificationService {
       
       // Handle audio loading and playback errors gracefully
       audio.addEventListener('error', (e) => {
-        console.warn(`🔇 Audio file not found: ${audioUrl}. Skipping sound notification.`);
+        console.info(`🔇 Audio file not available: ${audioUrl}. Using silent notification.`);
+        this.createSilentNotification(type);
       });
       
       audio.play().catch((error) => {
         // Ignore autoplay policy errors in development
         if (error.name === 'NotAllowedError') {
-          console.info('🔇 Audio autoplay blocked by browser policy (normal in development)');
+          console.info('🔇 Audio autoplay blocked by browser policy (using silent notification)');
+          this.createSilentNotification(type);
         } else {
-          console.warn('🔇 Audio playback failed:', error.message);
+          console.info('🔇 Audio playback failed, using silent notification:', error.message);
+          this.createSilentNotification(type);
         }
       });
     } catch (error) {
-      console.warn('🔇 Audio initialization failed:', error.message);
+      console.info('🔇 Audio system unavailable, using silent notification:', error.message);
+      this.createSilentNotification(type);
+    }
+  }
+
+  // Create a silent notification using Web Audio API
+  createSilentNotification(type) {
+    // Check if AudioContext is initialized (after user gesture)
+    if (!this.audioContext || !this.audioInitialized) {
+      console.log(`📢 Notification: ${type} (waiting for user interaction to enable audio)`);
+      return;
+    }
+
+    try {
+      // Resume AudioContext if suspended due to autoplay policy
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().then(() => {
+          this.playTone(type);
+        }).catch(error => {
+          console.log(`📢 Notification: ${type} (audio context suspended)`);
+        });
+      } else {
+        this.playTone(type);
+      }
+    } catch (error) {
+      // If Web Audio API fails, just log
+      console.log(`📢 Notification: ${type} (silent mode)`);
+    }
+  }
+
+  // Helper method to play notification tone
+  playTone(type) {
+    try {
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      
+      // Set frequency based on notification type
+      const frequencies = {
+        success: 800,
+        error: 200,
+        warning: 400,
+        info: 600
+      };
+      
+      oscillator.frequency.setValueAtTime(frequencies[type] || 600, this.audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.01, this.audioContext.currentTime); // Very quiet
+      gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1);
+      
+      oscillator.start();
+      oscillator.stop(this.audioContext.currentTime + 0.1);
+      
+      console.log(`🔔 Silent notification: ${type}`);
+    } catch (error) {
+      console.log(`📢 Notification: ${type} (audio playback failed)`);
     }
   }
 

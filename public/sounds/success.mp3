@@ -1,0 +1,7 @@
+# Silent Audio File Placeholder
+
+This is a placeholder file for the success.mp3 audio notification.
+In a production environment, you would replace this with an actual MP3 file.
+
+For development purposes, the notification system will handle this gracefully
+and skip audio playback if the file is not found or cannot be played.

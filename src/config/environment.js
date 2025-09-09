@@ -25,18 +25,18 @@ export const ENV_CONFIG = {
     DEBUG_MODE: true
   },
   
-  // Development Environment
+  // Development Environment - Connect to Real Backend
   DEVELOPMENT: {
-    OMNICHANNEL_API_URL: 'http://localhost:3000/api', // Use local mock API
-    OMNICHANNEL_WS_URL: 'ws://localhost:3000/ws', // Use local mock WebSocket
-    ADVANCED_ANALYTICS_API_URL: 'http://localhost:3000/api/analytics', // Local mock analytics
-    API_GATEWAY_URL: 'http://localhost:3000/api/gateway', // Local mock gateway
+    OMNICHANNEL_API_URL: 'https://omnichannel-hub-313373223340.us-central1.run.app',
+    OMNICHANNEL_WS_URL: 'wss://omnichannel-hub-313373223340.us-central1.run.app/ws',
+    ADVANCED_ANALYTICS_API_URL: 'https://advanced-analytics-313373223340.us-central1.run.app',
+    API_GATEWAY_URL: 'https://api-gateway-313373223340.us-central1.run.app',
     APP_ENV: 'development',
-    ENABLE_ANALYTICS: false,
-    ENABLE_ERROR_REPORTING: false,
+    ENABLE_ANALYTICS: true,
+    ENABLE_ERROR_REPORTING: false, // Keep disabled in dev
     ENABLE_PWA: true,
     DEBUG_MODE: true,
-    USE_MOCK_DATA: true // Enable mock data for development
+    USE_MOCK_DATA: false // 🚀 DISABLED - Use real backend APIs
   }
 };
 
