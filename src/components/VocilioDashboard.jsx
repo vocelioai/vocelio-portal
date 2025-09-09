@@ -55,6 +55,9 @@ import DepartmentsPage from './call-transfer/DepartmentsPage.jsx';
 import LiveCallMonitor from './call-transfer/LiveCallMonitor.jsx';
 import CallLogsPage from './call-transfer/CallLogsPage.jsx';
 
+// Import Omnichannel Dashboard
+import OmnichannelDashboard from './omnichannel/OmnichannelDashboard.jsx';
+
 // Enhanced Utility Components with AI Integration
 const EnhancedStatCard = ({ title, value, icon: Icon, color, prediction, trend }) => {
   const colorClasses = {
@@ -400,7 +403,7 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Active Campaigns</h3>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">{activeCampaigns.length} active</span>
+              <span className="text-sm text-gray-500">{Array.isArray(activeCampaigns) ? activeCampaigns.length : 0} active</span>
               <button 
                 onClick={() => setActiveSection('campaigns')}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
@@ -410,7 +413,7 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
             </div>
           </div>
           <div className="space-y-4">
-            {activeCampaigns.slice(0, 3).map((campaign) => (
+            {Array.isArray(activeCampaigns) ? activeCampaigns.slice(0, 3).map((campaign) => (
               <div key={campaign.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-all">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium text-gray-900">{campaign.name}</h4>
@@ -439,7 +442,13 @@ const HomeSection = ({ stats, activeCampaigns, liveCallsData, systemHealth }) =>
                   </span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="text-center py-8 text-gray-500">
+                <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="text-lg font-medium mb-2">No Active Campaigns</p>
+                <p className="text-sm">Create your first campaign to get started</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1135,6 +1144,17 @@ const VocilioDashboard = ({ onLogout, user }) => {
       ]
     },
     { 
+      id: 'omnichannel', 
+      label: 'Omnichannel Hub', 
+      icon: MessageSquare,
+      subitems: [
+        { id: 'omnichannel-overview', label: 'Channel Overview' },
+        { id: 'omnichannel-sessions', label: 'Active Sessions' },
+        { id: 'omnichannel-routing', label: 'Intelligent Routing' },
+        { id: 'omnichannel-campaigns', label: 'Campaign Orchestration' }
+      ]
+    },
+    { 
       id: 'analytics', 
       label: 'Analytics', 
       icon: TrendingUp,
@@ -1333,6 +1353,14 @@ const VocilioDashboard = ({ onLogout, user }) => {
           );
         }
         return <DepartmentsPage />;
+
+      // Omnichannel Hub Section
+      case 'omnichannel':
+      case 'omnichannel-overview':
+      case 'omnichannel-sessions':
+      case 'omnichannel-routing':
+      case 'omnichannel-campaigns':
+        return <OmnichannelDashboard />;
       
       case 'analytics':
       case 'performance-reports':

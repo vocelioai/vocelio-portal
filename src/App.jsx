@@ -9,6 +9,10 @@ import AddFunds from './components/AddFunds.jsx';
 import TransactionHistory from './components/TransactionHistory.jsx';
 import UsageDashboard from './components/UsageDashboard.jsx';
 
+// ===== COPILOT PROMPT #2: Redux Integration =====
+import { EnhancedReduxProvider, ReduxDevTools } from './providers/ReduxProvider.jsx';
+import PerformanceMonitor from './components/PerformanceMonitor.jsx';
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
@@ -210,4 +214,15 @@ function App() {
   );
 }
 
-export default App;
+// Wrap the entire app with Redux Provider
+const AppWithRedux = () => {
+  return (
+    <EnhancedReduxProvider>
+      <App />
+      <ReduxDevTools />
+      <PerformanceMonitor />
+    </EnhancedReduxProvider>
+  );
+};
+
+export default AppWithRedux;
