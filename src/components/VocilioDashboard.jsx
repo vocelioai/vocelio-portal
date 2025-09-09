@@ -49,6 +49,9 @@ import CallCenterPage from './CallCenterPage';
 // Import enhanced Voices section
 import VoicesPageNew from './VoicesPageNew';
 
+// Import tool integration settings
+import ToolIntegrationSettings from './settings/ToolIntegrationSettings.jsx';
+
 // Import call transfer components
 import DepartmentsPage from './call-transfer/DepartmentsPage.jsx';
 import LiveCallMonitor from './call-transfer/LiveCallMonitor.jsx';
@@ -571,14 +574,55 @@ const BillingSection = () => (
   </div>
 );
 
-const SettingsSection = () => (
-  <div className="animate-fade-in">
-    <h2 className="text-2xl font-bold mb-6">Settings</h2>
-    <div className="bg-white p-6 rounded-lg">
-      <p>Account and system settings</p>
+const SettingsSection = () => {
+  const [activeSettingsTab, setActiveSettingsTab] = useState('integrations');
+
+  const settingsTabs = [
+    { id: 'integrations', label: 'Tool Integrations' },
+    { id: 'account', label: 'Account Settings' },
+    { id: 'preferences', label: 'Preferences' }
+  ];
+
+  return (
+    <div className="animate-fade-in">
+      <h2 className="text-2xl font-bold mb-6">Settings</h2>
+      
+      {/* Settings Tabs */}
+      <div className="mb-6">
+        <div className="flex space-x-4 border-b">
+          {settingsTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveSettingsTab(tab.id)}
+              className={`px-4 py-2 border-b-2 transition-colors ${
+                activeSettingsTab === tab.id
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Settings Content */}
+      {activeSettingsTab === 'integrations' && <ToolIntegrationSettings />}
+      {activeSettingsTab === 'account' && (
+        <div className="bg-white p-6 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">Account Settings</h3>
+          <p className="text-gray-600">Account and profile settings will be available here.</p>
+        </div>
+      )}
+      {activeSettingsTab === 'preferences' && (
+        <div className="bg-white p-6 rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">User Preferences</h3>
+          <p className="text-gray-600">User preferences and customization options will be available here.</p>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 // Enhanced System Health Section
 const SystemHealthSection = ({ systemHealth }) => {
@@ -1119,6 +1163,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
       icon: Settings,
       subitems: [
         { id: 'account-settings', label: 'Account Settings' },
+        { id: 'tool-integrations', label: 'Tool Integrations' },
         { id: 'team-management', label: 'Team Management' },
         { id: 'integrations', label: 'Integrations' },
         { id: 'compliance', label: 'Compliance' },
@@ -1301,6 +1346,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
         return <BillingSection />;
       case 'settings':
       case 'account-settings':
+      case 'tool-integrations':
         return <SettingsSection />;
       case 'system-health':
         return <SystemHealthSection systemHealth={systemHealth} />;
