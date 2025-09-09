@@ -159,18 +159,20 @@ const SessionManagement = ({ sessions = [] }) => {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Active Sessions</h3>
         <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-          {sessions.length} active
+          {Array.isArray(sessions) ? sessions.length : 0} active
         </span>
       </div>
       
       <div className="space-y-3">
-        {sessions.length > 0 ? (
+        {Array.isArray(sessions) && sessions.length > 0 ? (
           sessions.map((session) => (
             <div key={session.session_id} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 rounded-full bg-green-400"></div>
                 <div>
-                  <p className="font-medium text-gray-900">{session.customer_name || 'Anonymous'}</p>
+                  <p className="font-medium text-gray-900">
+                    {session.customer_info?.name || session.customer_name || 'Anonymous'}
+                  </p>
                   <p className="text-sm text-gray-600">{session.channel_type} • {session.duration || '0:00'}</p>
                 </div>
               </div>

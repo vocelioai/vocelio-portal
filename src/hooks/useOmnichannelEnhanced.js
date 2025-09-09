@@ -8,6 +8,7 @@ import {
   useGetChannelIntegrationsQuery,
   useGetActiveSessionsQuery,
   useGetDashboardAnalyticsQuery,
+  useGetActiveCampaignsQuery,
   useCreateSessionMutation,
   useUpdateSessionMutation,
   useTransferSessionMutation,
@@ -375,6 +376,89 @@ export const useOmnichannelNotifications = (options = {}) => {
   };
 };
 
+// ===== ENHANCED CAMPAIGNS HOOK =====
+export const useOmnichannelCampaigns = (options = {}) => {
+  const { 
+    autoRefresh = true, 
+    refreshInterval = 60000, // 1 minute
+    includeInactive = false 
+  } = options;
+
+  const {
+    data: campaigns = [],
+    error,
+    isLoading,
+    isFetching,
+    refetch,
+  } = useGetActiveCampaignsQuery(undefined, {
+    pollingInterval: autoRefresh ? refreshInterval : 0,
+    refetchOnMountOrArgChange: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+
+  // Enhanced campaigns processing
+  const processedCampaigns = useMemo(() => {
+    if (!Array.isArray(campaigns)) return [];
+    
+    let filtered = campaigns;
+    if (!includeInactive) {
+      filtered = campaigns.filter(campaign => campaign.status !== 'inactive');
+    }
+    
+    // Add computed properties
+    return filtered.map(campaign => ({
+      ...campaign,
+      isActive: campaign.status === 'active',
+      completion: campaign.total_contacts > 0 ? 
+        Math.round((campaign.completed / campaign.total_contacts) * 100) : 0,
+      remaining: campaign.total_contacts - (campaign.completed || 0),
+      estimatedCompletion: calculateEstimatedCompletion(campaign),
+      performance: campaign.success_rate || 0,
+      icon: getChannelIcon(campaign.channel),
+    }));
+  }, [campaigns, includeInactive]);
+
+  // Campaign statistics
+  const campaignStats = useMemo(() => ({
+    total: processedCampaigns.length,
+    active: processedCampaigns.filter(c => c.isActive).length,
+    completed: processedCampaigns.filter(c => c.completion === 100).length,
+    totalContacts: processedCampaigns.reduce((sum, c) => sum + (c.total_contacts || 0), 0),
+    totalCompleted: processedCampaigns.reduce((sum, c) => sum + (c.completed || 0), 0),
+    avgSuccessRate: processedCampaigns.length > 0 ?
+      processedCampaigns.reduce((sum, c) => sum + (c.success_rate || 0), 0) / processedCampaigns.length : 0,
+  }), [processedCampaigns]);
+
+  // Enhanced error handling
+  const errorInfo = useMemo(() => {
+    if (!error) return null;
+    
+    return {
+      type: error.status >= 500 ? 'server' : 'client',
+      message: error.data?.message || error.message || 'Failed to load campaigns',
+      retryable: error.status !== 401 && error.status !== 403,
+      details: error.data?.details || null,
+    };
+  }, [error]);
+
+  return {
+    campaigns: processedCampaigns,
+    stats: campaignStats,
+    isLoading,
+    isFetching,
+    error: errorInfo,
+    refetch,
+    // Utility functions
+    getCampaignById: useCallback((id) => 
+      processedCampaigns.find(c => c.id === id), [processedCampaigns]),
+    getCampaignsByChannel: useCallback((channel) => 
+      processedCampaigns.filter(c => c.channel === channel), [processedCampaigns]),
+    getCampaignsByStatus: useCallback((status) => 
+      processedCampaigns.filter(c => c.status === status), [processedCampaigns]),
+  };
+};
+
 // ===== UTILITY FUNCTIONS =====
 
 const calculateDuration = (startTime) => {
@@ -442,6 +526,24 @@ const calculateHealthTrend = (history) => {
   if (ratio >= 0.8) return 'improving';
   if (ratio <= 0.4) return 'declining';
   return 'stable';
+};
+
+const calculateEstimatedCompletion = (campaign) => {
+  if (!campaign.created_at || !campaign.completed || !campaign.total_contacts) {
+    return null;
+  }
+  
+  const startTime = new Date(campaign.created_at).getTime();
+  const currentTime = Date.now();
+  const elapsedTime = currentTime - startTime;
+  const completionRate = campaign.completed / campaign.total_contacts;
+  
+  if (completionRate === 0) return null;
+  
+  const estimatedTotalTime = elapsedTime / completionRate;
+  const remainingTime = estimatedTotalTime - elapsedTime;
+  
+  return remainingTime > 0 ? new Date(currentTime + remainingTime) : new Date();
 };
 
 const getNotificationIcon = (type) => {

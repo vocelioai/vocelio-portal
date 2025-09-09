@@ -39,10 +39,11 @@ const OmnichannelIntegration = ({ campaignId, isActive }) => {
       const channels = await channelsResponse.json();
       setActiveChannels(channels);
 
-      // Get unified customer sessions
-      const sessionsResponse = await fetch(`${OMNICHANNEL_HUB_URL}/sessions/unified`);
-      const sessions = await sessionsResponse.json();
-      setUnifiedSessions(sessions);
+      // Get unified customer sessions (fallback to active sessions)
+      const sessionsResponse = await fetch(`${OMNICHANNEL_HUB_URL}/sessions/active`);
+      const sessionsData = await sessionsResponse.json();
+      const sessions = sessionsData?.sessions || sessionsData || [];
+      setUnifiedSessions(Array.isArray(sessions) ? sessions : []);
 
       // Get channel performance metrics
       const metricsResponse = await fetch(`${OMNICHANNEL_HUB_URL}/analytics/channel-metrics`);
@@ -216,7 +217,7 @@ const ChannelPerformanceMatrix = ({ channels, metrics }) => {
       </h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {channels.map((channel, index) => {
+        {Array.isArray(channels) && channels.map((channel, index) => {
           const Icon = getChannelIcon(channel.name);
           const performance = metrics[channel.name] || {};
           
@@ -286,7 +287,7 @@ const UnifiedCustomerSessions = ({ sessions, onTransferChannel }) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {sessions.map((session, index) => (
+            {Array.isArray(sessions) && sessions.map((session, index) => (
               <tr key={index} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
@@ -296,7 +297,7 @@ const UnifiedCustomerSessions = ({ sessions, onTransferChannel }) => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex space-x-1">
-                    {session.active_channels.map((channel, idx) => {
+                    {Array.isArray(session.active_channels) && session.active_channels.map((channel, idx) => {
                       const Icon = getChannelIcon(channel);
                       return (
                         <Icon key={idx} className="h-4 w-4 text-gray-600" title={channel} />

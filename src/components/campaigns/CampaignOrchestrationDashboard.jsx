@@ -4,7 +4,8 @@ import {
   BarChart3, Calendar, Target, Zap, Brain, Eye, Edit3,
   Plus, Copy, Archive, Trash2, Filter, Search, Download,
   Clock, TrendingUp, AlertTriangle, CheckCircle, XCircle,
-  ArrowRight, Layers, Workflow, TestTube, Globe, Send, FileText
+  ArrowRight, Layers, Workflow, TestTube, Globe, Send, FileText,
+  Bell
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import CampaignFlowBuilder from './CampaignFlowBuilder';
@@ -417,11 +418,11 @@ const CampaignTableRow = ({ campaign, onAction, getStatusColor, getChannelIcon }
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex space-x-1">
-          {campaign.channels.slice(0, 3).map((channel, index) => {
+          {Array.isArray(campaign.channels) && campaign.channels.slice(0, 3).map((channel, index) => {
             const Icon = getChannelIcon(channel);
             return <Icon key={index} className="h-4 w-4 text-gray-500" />;
           })}
-          {campaign.channels.length > 3 && (
+          {Array.isArray(campaign.channels) && campaign.channels.length > 3 && (
             <span className="text-xs text-gray-500">+{campaign.channels.length - 3}</span>
           )}
         </div>
@@ -480,7 +481,7 @@ const CampaignCard = ({ campaign, onAction, getStatusColor, getChannelIcon }) =>
         <div className="flex items-center space-x-2 mb-2">
           <span className="text-sm text-gray-500">Channels:</span>
           <div className="flex space-x-1">
-            {campaign.channels.map((channel, index) => {
+            {Array.isArray(campaign.channels) && campaign.channels.map((channel, index) => {
               const Icon = getChannelIcon(channel);
               return <Icon key={index} className="h-4 w-4 text-gray-500" />;
             })}

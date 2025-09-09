@@ -2,103 +2,16 @@
 // Complete Redux Toolkit store with persistence, RTK Query, and deployment configuration
 
 import { configureStore } from '@reduxjs/toolkit';
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { persistStore, persistReducer } from 'redux-persist';
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from '@reduxjs/toolkit';
 import { setupListeners } from '@reduxjs/toolkit/query';
 import { createSlice } from '@reduxjs/toolkit';
 import { getCurrentConfig } from '../config/environment';
+import omnichannelApiSlice from './omnichannelApiSlice';
 
 // API Configuration
 const config = getCurrentConfig();
-
-// Base Query with Authentication
-const baseQuery = fetchBaseQuery({
-  baseUrl: config.OMNICHANNEL_API_URL,
-  prepareHeaders: (headers, { getState }) => {
-    // Add authentication token
-    const token = getState()?.auth?.token || localStorage.getItem('vocelio_auth_token');
-    if (token) {
-      headers.set('authorization', `Bearer ${token}`);
-    }
-    
-    // Add API key
-    headers.set('x-api-key', process.env.REACT_APP_OMNICHANNEL_API_KEY || 'dev_api_key');
-    headers.set('content-type', 'application/json');
-    headers.set('x-app-version', '1.0.0');
-    return headers;
-  },
-});
-
-// Base Query with Retry Logic and Token Refresh
-const baseQueryWithRetry = async (args, api, extraOptions) => {
-  let result = await baseQuery(args, api, extraOptions);
-  
-  // Handle token refresh on 401
-  if (result.error && result.error.status === 401) {
-    const refreshResult = await baseQuery(
-      {
-        url: '/auth/refresh',
-        method: 'POST',
-        body: { 
-          refreshToken: localStorage.getItem('vocelio_refresh_token') 
-        }
-      },
-      api,
-      extraOptions
-    );
-    
-    if (refreshResult.data) {
-      localStorage.setItem('vocelio_auth_token', refreshResult.data.token);
-      api.dispatch(authSlice.actions.setCredentials(refreshResult.data));
-      result = await baseQuery(args, api, extraOptions);
-    } else {
-      api.dispatch(authSlice.actions.logout());
-      window.location.href = '/auth/login';
-    }
-  }
-  
-  return result;
-};
-
-// Enhanced RTK Query API
-export const omnichannelApi = createApi({
-  reducerPath: 'omnichannelApi',
-  baseQuery: baseQueryWithRetry,
-  tagTypes: [
-    'Sessions', 'Analytics', 'Channels', 'Customers', 
-    'Campaigns', 'Automation', 'Templates', 'Reports'
-  ],
-  endpoints: (builder) => ({
-    // Session Management
-    getSessions: builder.query({
-      query: (params = {}) => ({
-        url: '/sessions',
-        params: { page: 1, limit: 50, status: 'active', ...params }
-      }),
-      providesTags: ['Sessions'],
-      pollingInterval: 5000,
-    }),
-    
-    // Analytics
-    getDashboardStats: builder.query({
-      query: (timeframe = '24h') => `/analytics/dashboard?timeframe=${timeframe}`,
-      providesTags: ['Analytics'],
-      pollingInterval: 30000,
-    }),
-    
-    // Campaign Management  
-    launchOmnichannelCampaign: builder.mutation({
-      query: (campaignConfig) => ({
-        url: '/campaigns/omnichannel-launch',
-        method: 'POST',
-        body: campaignConfig,
-      }),
-      invalidatesTags: ['Campaigns'],
-    }),
-  }),
-});
 
 // Auth Slice
 const authSlice = createSlice({
@@ -163,7 +76,7 @@ const persistConfig = {
 const rootReducer = combineReducers({
   auth: authSlice.reducer,
   ui: uiSlice.reducer,
-  [omnichannelApi.reducerPath]: omnichannelApi.reducer,
+  [omnichannelApiSlice.reducerPath]: omnichannelApiSlice.reducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -176,7 +89,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
-    }).concat(omnichannelApi.middleware),
+    }).concat(omnichannelApiSlice.middleware),
   devTools: process.env.NODE_ENV !== 'production' && {
     name: 'Vocelio Omnichannel Store',
     trace: true,
@@ -227,6 +140,10 @@ export const invalidateAllQueries = () => {
 export const resetApiState = () => {
   store.dispatch(omnichannelApiSlice.util.resetApiState());
 };
+
+// Export auth actions
+export const { setCredentials, logout } = authSlice.actions;
+export const { toggleSidebar, setCurrentView, addNotification, removeNotification } = uiSlice.actions;
 
 // Memory management for long-running sessions
 export const cleanupUnusedQueries = () => {

@@ -8,6 +8,7 @@ import VocilioDashboard from './components/VocilioDashboard';
 import AddFunds from './components/AddFunds.jsx';
 import TransactionHistory from './components/TransactionHistory.jsx';
 import UsageDashboard from './components/UsageDashboard.jsx';
+import OmnichannelApiTest from './components/OmnichannelApiTest.jsx';
 
 // ===== COPILOT PROMPT #2: Redux Integration =====
 import { EnhancedReduxProvider, ReduxDevTools } from './providers/ReduxProvider.jsx';
@@ -197,6 +198,26 @@ function App() {
                   </div>
                 </div>
               </ProtectedRoute>
+            } 
+          />
+          
+          {/* API Test Route */}
+          <Route 
+            path="/api-test" 
+            element={
+              <div className="min-h-screen bg-gray-50 py-8">
+                <div className="max-w-6xl mx-auto px-4">
+                  <div className="mb-6">
+                    <button
+                      onClick={() => window.history.back()}
+                      className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      ← Back to Dashboard
+                    </button>
+                  </div>
+                  <OmnichannelApiTest />
+                </div>
+              </div>
             } 
           />
           

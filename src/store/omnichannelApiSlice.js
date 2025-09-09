@@ -52,7 +52,23 @@ const omnichannelApiSlice = createApi({
           : [{ type: 'Channel', id: 'LIST' }],
       keepUnusedDataFor: 300, // 5 minutes cache
       transformResponse: (response) => {
-        // Ensure consistent data structure
+        // Handle the actual backend response structure
+        if (response?.integrations) {
+          // Convert integrations object to array format expected by frontend
+          return Object.entries(response.integrations).map(([key, value]) => ({
+            id: key,
+            type: value.channel,
+            name: value.channel.charAt(0).toUpperCase() + value.channel.slice(1),
+            status: value.enabled ? 'active' : 'inactive',
+            config: value.configuration,
+            metrics: {
+              active_sessions: 0, // Will be populated from other endpoints
+              rate_limits: value.rate_limits
+            },
+            ...value
+          }));
+        }
+        // Fallback for other response structures
         if (Array.isArray(response)) return response;
         if (response?.channels) return response.channels;
         if (response?.data) return response.data;
@@ -106,10 +122,22 @@ const omnichannelApiSlice = createApi({
             ]
           : [{ type: 'Session', id: 'LIST' }],
       transformResponse: (response) => {
-        // Normalize session data
-        if (Array.isArray(response)) return response;
-        if (response?.sessions) return response.sessions;
-        if (response?.data) return response.data;
+        console.log('Sessions API Response:', response);
+        // Handle the actual backend response structure
+        if (response?.sessions) {
+          console.log('Returning sessions array:', response.sessions);
+          return response.sessions;
+        }
+        // Fallback for other response structures
+        if (Array.isArray(response)) {
+          console.log('Response is already an array:', response);
+          return response;
+        }
+        if (response?.data) {
+          console.log('Returning response.data:', response.data);
+          return response.data;
+        }
+        console.log('Returning empty array for sessions');
         return [];
       },
       keepUnusedDataFor: 60, // 1 minute cache for real-time data
@@ -172,6 +200,7 @@ const omnichannelApiSlice = createApi({
       providesTags: ['Analytics'],
       keepUnusedDataFor: 120, // 2 minutes cache
       transformResponse: (response) => {
+        console.log('Analytics API Response:', response);
         // Provide fallback analytics structure
         const defaultAnalytics = {
           totalSessions: 0,
@@ -235,6 +264,21 @@ const omnichannelApiSlice = createApi({
     }),
 
     // ===== CAMPAIGN INTEGRATION =====
+
+    // Get active campaigns
+    getActiveCampaigns: builder.query({
+      query: () => '/campaigns/active',
+      providesTags: ['Campaign'],
+      transformResponse: (response) => {
+        console.log('Active Campaigns API Response:', response);
+        // Handle the backend response structure
+        if (response?.campaigns) return response.campaigns;
+        // Fallback for other response structures
+        if (Array.isArray(response)) return response;
+        return [];
+      },
+      pollingInterval: 60000, // Poll every minute for campaign updates
+    }),
 
     // Get campaign omnichannel data
     getCampaignOmnichannelData: builder.query({
@@ -341,6 +385,7 @@ export const {
   useUpdateCustomerProfileMutation,
   
   // Campaign hooks
+  useGetActiveCampaignsQuery,
   useGetCampaignOmnichannelDataQuery,
   useUpdateCampaignChannelsMutation,
   

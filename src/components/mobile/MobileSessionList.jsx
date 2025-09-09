@@ -28,7 +28,7 @@ const MobileSessionList = ({ sessions = [], onSessionAction, onSessionSelect }) 
   }, [onSessionAction]);
 
   // Mock sessions data if none provided
-  const mockSessions = sessions.length > 0 ? sessions : [
+  const mockSessions = (Array.isArray(sessions) && sessions.length > 0) ? sessions : [
     {
       id: 'session_001',
       customer: {
