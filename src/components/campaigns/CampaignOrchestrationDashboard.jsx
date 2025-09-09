@@ -11,6 +11,7 @@ import CampaignFlowBuilder from './CampaignFlowBuilder';
 import TemplateManager from './TemplateManager';
 import CampaignAnalytics from './CampaignAnalytics';
 import AutomationRules from './AutomationRules';
+import OmnichannelIntegration from './OmnichannelIntegration';
 
 // ===== COPILOT PROMPT #6: Campaign Orchestration Interface =====
 // Comprehensive campaign management and orchestration platform
@@ -195,6 +196,7 @@ const CampaignOrchestrationDashboard = ({ isActive }) => {
                 { id: 'templates', label: 'Templates', icon: Edit3 },
                 { id: 'analytics', label: 'Analytics', icon: TrendingUp },
                 { id: 'automation', label: 'Automation', icon: Zap },
+                { id: 'omnichannel', label: 'Omnichannel', icon: Globe },
                 { id: 'builder', label: 'Flow Builder', icon: Workflow }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -356,6 +358,14 @@ const CampaignOrchestrationDashboard = ({ isActive }) => {
         {/* Automation Tab */}
         {activeView === 'automation' && (
           <AutomationRules />
+        )}
+
+        {/* Omnichannel Integration Tab */}
+        {activeView === 'omnichannel' && (
+          <OmnichannelIntegration 
+            campaignId={selectedCampaign?.id} 
+            isActive={isActive} 
+          />
         )}
 
         {/* Flow Builder Tab */}
