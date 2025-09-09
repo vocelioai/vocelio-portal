@@ -8,7 +8,8 @@ import {
   ChevronDown, ChevronRight, ExternalLink, Mail, MessageSquare, Loader,
   Activity, Wifi, WifiOff, Server, Database, Cloud, 
   LineChart, PieChart, BarChart, TrendingDown, AlertTriangle, LogOut,
-  Wallet, Receipt, PieChart as UsageIcon, PhoneForwarded, Building2, User
+  Wallet, Receipt, PieChart as UsageIcon, PhoneForwarded, Building2, User,
+  FileText, Volume2
 } from 'lucide-react';
 
 // 🎯 UPDATED: Import enhanced services with multi-tenant support
@@ -266,421 +267,245 @@ const NavigationItem = ({ item, activeSection, setActiveSection, collapsed }) =>
 };
 
 // Enhanced Home Section Component with Real-time Data
-const HomeSection = ({ stats, liveCallsData, systemHealth }) => {
-  const [refreshing, setRefreshing] = useState(false);
+const HomeSection = ({ stats, liveCallsData, systemHealth, user }) => {
+  const [activeCard, setActiveCard] = useState(null);
+  const [waveAnimation, setWaveAnimation] = useState(0);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadDashboardData();
-      notificationService.showSuccess('Data refreshed successfully');
-    } catch (error) {
-      notificationService.showError('Failed to refresh data', error);
-    } finally {
-      setRefreshing(false);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setWaveAnimation(prev => (prev + 1) % 100);
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  const apiCards = [
+    {
+      id: 'voice-agent',
+      title: 'VOICE AGENT API',
+      description: 'A unified voice-to-voice API that enables natural-sounding conversations between humans and machines.',
+      icon: <Mic className="w-6 h-6" />,
+      gradient: 'from-cyan-400 to-blue-500',
+      features: ['Real-time processing', 'Natural conversations', 'Multi-language support']
+    },
+    {
+      id: 'speech-to-text',
+      title: 'SPEECH TO TEXT API',
+      description: 'Transcribe speech with unmatched accuracy, speed, and cost efficiency.',
+      icon: <FileText className="w-6 h-6" />,
+      gradient: 'from-purple-400 to-pink-500',
+      features: ['99%+ accuracy', 'Lightning fast', 'Cost effective']
+    },
+    {
+      id: 'audio-intelligence',
+      title: 'AUDIO INTELLIGENCE API',
+      description: 'Advanced audio intelligence for Enterprise-scale analysis and insights.',
+      icon: <Brain className="w-6 h-6" />,
+      gradient: 'from-emerald-400 to-teal-500',
+      features: ['Sentiment analysis', 'Topic extraction', 'Intent detection']
+    },
+    {
+      id: 'text-to-speech',
+      title: 'TEXT TO SPEECH API',
+      description: 'Lightning fast, humanlike voice for real-time AI and high throughput applications.',
+      icon: <Volume2 className="w-6 h-6" />,
+      gradient: 'from-orange-400 to-red-500',
+      features: ['Human-like voices', 'Real-time generation', 'High throughput']
     }
+  ];
+
+  const WaveformAnimation = () => {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="relative w-32 h-32">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className={`absolute inset-0 rounded-full border-2 border-cyan-400 opacity-${70 - i * 20} animate-ping`}
+              style={{
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: '2s'
+              }}
+            />
+          ))}
+          <div className="absolute inset-4 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 opacity-80 animate-pulse" />
+        </div>
+      </div>
+    );
+  };
+
+  const Dashboard = () => {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+          <div className="flex items-center gap-3 mb-3">
+            <BarChart3 className="w-5 h-5 text-cyan-400" />
+            <span className="text-gray-300 text-sm">API Usage</span>
+          </div>
+          <div className="text-2xl font-bold text-white mb-1">{((stats.totalCalls || 12000) / 10000).toFixed(1)}M</div>
+          <div className="text-sm text-gray-400">Requests today</div>
+          <div className="mt-3 h-20 bg-gray-900/50 rounded flex items-end gap-1 p-2">
+            {[...Array(12)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-cyan-400 rounded-sm flex-1"
+                style={{ height: `${Math.random() * 60 + 20}%` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+          <div className="flex items-center gap-3 mb-3">
+            <Zap className="w-5 h-5 text-yellow-400" />
+            <span className="text-gray-300 text-sm">Performance</span>
+          </div>
+          <div className="text-2xl font-bold text-white mb-1">99.9%</div>
+          <div className="text-sm text-gray-400">Uptime</div>
+          <div className="mt-3">
+            <div className="flex justify-between text-sm text-gray-400 mb-1">
+              <span>Response Time</span>
+              <span>45ms</span>
+            </div>
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div className="bg-green-400 h-2 rounded-full" style={{ width: '85%' }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+          <div className="flex items-center gap-3 mb-3">
+            <Wallet className="w-5 h-5 text-green-400" />
+            <span className="text-gray-300 text-sm">Wallet Balance</span>
+          </div>
+          <div className="text-2xl font-bold text-white mb-1">
+            ${((user?.wallet_balance || user?.balance || 0) / 100)?.toFixed(2) || '0.00'}
+          </div>
+          <div className="text-sm text-gray-400">Available funds</div>
+          <div className="mt-3 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-sm text-gray-400">Ready for campaigns</span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0">
-        {/* Neural Network Animation */}
-        <div className="absolute top-10 left-10 w-32 h-32 opacity-20">
-          <div className="w-full h-full border border-cyan-400/30 rounded-full animate-pulse"></div>
-          <div className="absolute top-4 left-4 w-24 h-24 border border-purple-400/30 rounded-full animate-ping"></div>
-          <div className="absolute top-8 left-8 w-16 h-16 border border-blue-400/30 rounded-full animate-bounce"></div>
-        </div>
-        
-        {/* Floating Particles */}
-        <div className="absolute top-1/4 right-20 w-2 h-2 bg-cyan-400 rounded-full animate-pulse opacity-60"></div>
-        <div className="absolute top-1/2 right-40 w-1 h-1 bg-purple-400 rounded-full animate-ping opacity-40"></div>
-        <div className="absolute bottom-1/4 left-20 w-3 h-3 bg-blue-400 rounded-full animate-bounce opacity-50"></div>
-        
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent"></div>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+
+
+      {/* Main API Cards Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {apiCards.map((card) => (
+          <div
+            key={card.id}
+            className={`relative bg-gray-800/40 backdrop-blur-sm rounded-2xl p-8 border border-gray-700/50 hover:border-gray-600 transition-all duration-300 cursor-pointer group ${
+              activeCard === card.id ? 'ring-2 ring-cyan-400/50' : ''
+            }`}
+            onMouseEnter={() => setActiveCard(card.id)}
+            onMouseLeave={() => setActiveCard(null)}
+          >
+            {/* Background Gradient Effect */}
+            <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-5 rounded-2xl group-hover:opacity-10 transition-opacity duration-300`} />
+            
+            {/* Card Content */}
+            <div className="relative z-10">
+              {/* API Badge */}
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${card.gradient} text-white text-sm font-semibold mb-6`}>
+                {card.icon}
+                {card.title}
+              </div>
+
+              {/* Description */}
+              <p className="text-gray-300 text-lg mb-6 leading-relaxed">
+                {card.description}
+              </p>
+
+              {/* Features */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {card.features.map((feature, idx) => (
+                  <span
+                    key={idx}
+                    className="px-3 py-1 bg-gray-700/50 rounded-full text-sm text-gray-300 border border-gray-600"
+                  >
+                    {feature}
+                  </span>
+                ))}
+              </div>
+
+              {/* Learn More Button */}
+              <button 
+                onClick={() => setActiveSection('omnichannel-campaigns')}
+                className="text-cyan-400 hover:text-cyan-300 font-semibold transition-colors duration-200 flex items-center gap-2 group"
+              >
+                Learn More
+                <Play className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+              </button>
+            </div>
+
+            {/* Special Visual Elements */}
+            {card.id === 'voice-agent' && (
+              <div className="absolute top-4 right-4 w-24 h-24 opacity-20">
+                <WaveformAnimation />
+              </div>
+            )}
+
+            {card.id === 'speech-to-text' && (
+              <div className="absolute top-4 right-4 w-16 h-16 opacity-20">
+                <div className="w-full h-full bg-gradient-to-r from-purple-400 to-pink-500 rounded-lg animate-pulse" />
+                <div className="absolute inset-2 grid grid-cols-3 gap-1">
+                  {[...Array(9)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="bg-white/30 rounded-sm animate-pulse"
+                      style={{ animationDelay: `${i * 0.1}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {card.id === 'audio-intelligence' && (
+              <div className="absolute top-4 right-4 w-16 h-16 opacity-20">
+                <div className="relative w-full h-full">
+                  <div className="absolute inset-0 rounded-full border-2 border-emerald-400 animate-spin" />
+                  <div className="absolute inset-2 rounded-full bg-emerald-400/30" />
+                  <Brain className="absolute inset-0 m-auto w-6 h-6 text-emerald-400" />
+                </div>
+              </div>
+            )}
+
+            {card.id === 'text-to-speech' && (
+              <div className="absolute top-4 right-4 w-16 h-16 opacity-20">
+                <div className="relative w-full h-full">
+                  {[...Array(5)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute bg-orange-400 rounded-full animate-bounce"
+                      style={{
+                        width: `${8 + i * 2}px`,
+                        height: `${8 + i * 2}px`,
+                        top: '50%',
+                        left: `${i * 12}px`,
+                        transform: 'translateY(-50%)',
+                        animationDelay: `${i * 0.1}s`,
+                        animationDuration: '1s'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 space-y-8 p-6 animate-fade-in">
-        {/* Futuristic Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="space-y-2">
-            <div className="flex items-center space-x-3">
-              <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse"></div>
-              <h2 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                AI Command Center
-              </h2>
-            </div>
-            <p className="text-slate-400 text-lg flex items-center space-x-2">
-              <Brain className="w-5 h-5 text-cyan-400 animate-pulse" />
-              <span>Neural network-powered voice intelligence</span>
-            </p>
-          </div>
-          
-          <div className="flex items-center space-x-6">
-            {/* AI System Status */}
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-cyan-500/30 rounded-2xl px-4 py-3">
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <div className={`w-4 h-4 rounded-full ${
-                    systemHealth.status === 'healthy' ? 'bg-green-400' : 
-                    systemHealth.status === 'degraded' ? 'bg-yellow-400' : 'bg-red-400'
-                  } animate-pulse`}></div>
-                  <div className={`absolute inset-0 w-4 h-4 rounded-full ${
-                    systemHealth.status === 'healthy' ? 'bg-green-400' : 
-                    systemHealth.status === 'degraded' ? 'bg-yellow-400' : 'bg-red-400'
-                  } animate-ping opacity-30`}></div>
-                </div>
-                <span className="text-slate-300 font-medium">
-                  AI System {systemHealth.status || 'Online'}
-                </span>
-              </div>
-            </div>
-            
-            {/* Neural Sync Button */}
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105 disabled:opacity-50 flex items-center space-x-2 border border-cyan-400/30"
-            >
-              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-              <span>Neural Sync</span>
-            </button>
-          </div>
-        </div>
+      {/* Dashboard Stats */}
+      <Dashboard />
 
-        {/* Holographic Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          {/* AI Enhanced Stat Cards */}
-          <div className="bg-slate-800/30 backdrop-blur-md border border-cyan-500/30 rounded-2xl p-6 hover:border-cyan-400/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <PhoneCall className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-slate-400 text-sm font-medium">Neural Calls</p>
-              <p className="text-3xl font-bold text-white">{stats.totalCalls?.toLocaleString() || '0'}</p>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                <span className="text-green-400 text-sm">+12.5%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-800/30 backdrop-blur-md border border-green-500/30 rounded-2xl p-6 hover:border-green-400/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-slate-400 text-sm font-medium">Smart Bookings</p>
-              <p className="text-3xl font-bold text-white">{stats.appointments?.toLocaleString() || '0'}</p>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                <span className="text-green-400 text-sm">+8.3%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-800/30 backdrop-blur-md border border-purple-500/30 rounded-2xl p-6 hover:border-purple-400/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <DollarSign className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-slate-400 text-sm font-medium">AI Revenue</p>
-              <p className="text-3xl font-bold text-white">${((stats.revenue || 0) / 1000000).toFixed(1)}M</p>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                <span className="text-green-400 text-sm">+15.7%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-800/30 backdrop-blur-md border border-orange-500/30 rounded-2xl p-6 hover:border-orange-400/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Target className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-right">
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <p className="text-slate-400 text-sm font-medium">ROI Matrix</p>
-              <p className="text-3xl font-bold text-white">{(stats.roi || 0).toLocaleString()}%</p>
-              <div className="flex items-center space-x-2">
-                <TrendingUp className="w-4 h-4 text-green-400" />
-                <span className="text-green-400 text-sm">+5.2%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quantum Wallet */}
-          <div className="bg-gradient-to-br from-slate-800/50 to-emerald-900/30 backdrop-blur-md border border-emerald-500/30 rounded-2xl p-6 hover:border-emerald-400/50 transition-all duration-300 group">
-            <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Wallet className="w-6 h-6 text-white" />
-              </div>
-              <button 
-                onClick={() => setActiveSection('wallet-balance')}
-                className="text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
-              >
-                Access →
-              </button>
-            </div>
-            <div className="space-y-2">
-              <p className="text-slate-400 text-sm font-medium">Quantum Wallet</p>
-              <p className="text-3xl font-bold text-emerald-400">$4.00</p>
-              <p className="text-slate-500 text-sm">50 neural minutes remaining</p>
-            </div>
-          </div>
-        </div>
-
-        {/* AI Neural Network Insights */}
-        <div className="bg-slate-800/20 backdrop-blur-md border border-cyan-500/20 rounded-3xl p-8">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center">
-              <Brain className="w-8 h-8 text-white animate-pulse" />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold text-white">Neural Intelligence Matrix</h3>
-              <p className="text-slate-400">Advanced AI predictions and behavioral analysis</p>
-            </div>
-            <div className="ml-auto">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
-                <span className="text-cyan-400 text-sm font-medium">Processing</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-900/50 border border-blue-500/30 rounded-2xl p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Zap className="w-6 h-6 text-blue-400" />
-                <h4 className="text-white font-semibold">Predictive Analysis</h4>
-              </div>
-              <p className="text-slate-300 text-sm mb-3">Next hour call volume prediction shows 23% increase in inbound traffic</p>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full w-3/4 animate-pulse"></div>
-              </div>
-              <p className="text-blue-400 text-xs mt-2">94% accuracy</p>
-            </div>
-
-            <div className="bg-slate-900/50 border border-purple-500/30 rounded-2xl p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Activity className="w-6 h-6 text-purple-400" />
-                <h4 className="text-white font-semibold">Voice Pattern Analysis</h4>
-              </div>
-              <p className="text-slate-300 text-sm mb-3">Emotion detection shows 87% positive sentiment in recent calls</p>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full w-5/6 animate-pulse"></div>
-              </div>
-              <p className="text-purple-400 text-xs mt-2">87% positive</p>
-            </div>
-
-            <div className="bg-slate-900/50 border border-green-500/30 rounded-2xl p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Target className="w-6 h-6 text-green-400" />
-                <h4 className="text-white font-semibold">Optimization Engine</h4>
-              </div>
-              <p className="text-slate-300 text-sm mb-3">AI recommends adjusting call timing for 15% better conversion rates</p>
-              <div className="w-full bg-slate-700 rounded-full h-2">
-                <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full w-4/5 animate-pulse"></div>
-              </div>
-              <p className="text-green-400 text-xs mt-2">+15% performance</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Holographic Campaign Center & Neural Activity Monitor */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Quantum Campaign Hub */}
-          <div className="bg-slate-800/20 backdrop-blur-md border border-blue-500/30 rounded-3xl p-8 hover:border-blue-400/50 transition-all duration-300">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
-                  <MessageSquare className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Quantum Campaigns</h3>
-                  <p className="text-slate-400 text-sm">Omnichannel Neural Hub</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setActiveSection('omnichannel-campaigns')}
-                className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors flex items-center space-x-1"
-              >
-                <span>Neural Access</span>
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </div>
-            
-            <div className="text-center py-12 bg-gradient-to-br from-blue-900/30 to-purple-900/30 rounded-2xl border border-blue-500/20">
-              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-10 h-10 text-white animate-pulse" />
-              </div>
-              <p className="text-2xl font-bold text-white mb-2">Neural Orchestration Ready</p>
-              <p className="text-slate-400 mb-6">Multi-dimensional campaign management through quantum processing</p>
-              <button 
-                onClick={() => setActiveSection('omnichannel-campaigns')}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105"
-              >
-                Activate Neural Campaigns
-              </button>
-            </div>
-          </div>
-
-          {/* Live Neural Activity Monitor */}
-          <div className="bg-slate-800/20 backdrop-blur-md border border-green-500/30 rounded-3xl p-8 hover:border-green-400/50 transition-all duration-300">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-white">Neural Activity Stream</h3>
-                  <p className="text-slate-400 text-sm">Real-time consciousness monitoring</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
-                <span className="text-green-400 text-sm font-medium">{stats.activeCalls || 0} active neural links</span>
-              </div>
-            </div>
-            
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {liveCallsData.slice(0, 6).map((call) => (
-                <div key={call.id} className="bg-slate-900/40 border border-slate-700/50 rounded-2xl p-4 hover:border-green-500/30 transition-all duration-300">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="text-white font-medium flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                        <span>{call.contact}</span>
-                      </div>
-                      <div className="text-slate-400 text-sm flex items-center space-x-2 mt-1">
-                        <span>{call.phone}</span>
-                        {call.location && (
-                          <>
-                            <span className="text-slate-600">•</span>
-                            <span>{call.location}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-green-400 font-medium">{call.duration}</div>
-                      <div className={`text-xs px-3 py-1 rounded-full border ${
-                        call.status === 'in-progress' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' :
-                        call.status === 'ringing' ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400' :
-                        call.status === 'connected' ? 'bg-green-500/20 border-green-500/30 text-green-400' :
-                        'bg-slate-500/20 border-slate-500/30 text-slate-400'
-                      }`}>
-                        {call.status.replace('-', ' ')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {liveCallsData.length === 0 && (
-                <div className="text-center py-12 text-slate-500">
-                  <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <PhoneCall className="w-8 h-8 text-slate-600" />
-                  </div>
-                  <p className="text-lg">Neural network standby</p>
-                  <p className="text-sm text-slate-600">Awaiting incoming connections</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Quantum Action Matrix */}
-        <div className="bg-slate-800/20 backdrop-blur-md border border-purple-500/30 rounded-3xl p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white animate-pulse" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Quantum Action Matrix</h3>
-                <p className="text-slate-400">AI-powered neural command center</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
-              <span className="text-purple-400 text-sm font-medium">Neural optimization active</span>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <button 
-              onClick={() => setActiveSection('campaign-builder')}
-              className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-2xl p-6 hover:border-blue-400/50 transition-all duration-300 transform hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <Plus className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="text-white font-semibold mb-2">Neural Campaign</h4>
-              <p className="text-slate-400 text-sm">Initialize new quantum campaign matrix</p>
-              {stats.aiInsights?.suggestNewCampaign && (
-                <div className="mt-2 text-xs bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-2 py-1 rounded-full">
-                  AI Recommended
-                </div>
-              )}
-            </button>
-
-            <button 
-              onClick={() => setActiveSection('upload-import')}
-              className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-2xl p-6 hover:border-green-400/50 transition-all duration-300 transform hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <Upload className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="text-white font-semibold mb-2">Data Upload</h4>
-              <p className="text-slate-400 text-sm">Import contacts to neural database</p>
-            </button>
-
-            <button 
-              onClick={() => setActiveSection('voice-settings')}
-              className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-2xl p-6 hover:border-purple-400/50 transition-all duration-300 transform hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <Mic className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="text-white font-semibold mb-2">Voice Neural</h4>
-              <p className="text-slate-400 text-sm">Calibrate voice synthesis matrix</p>
-            </button>
-
-            <button 
-              onClick={() => setActiveSection('analytics')}
-              className="bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/30 rounded-2xl p-6 hover:border-orange-400/50 transition-all duration-300 transform hover:scale-105 group"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <h4 className="text-white font-semibold mb-2">Analytics Core</h4>
-              <p className="text-slate-400 text-sm">Access quantum data insights</p>
-              <div className="mt-2 text-xs bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full">
-                Updated
-              </div>
-            </button>
-          </div>
-        </div>
+      {/* Footer */}
+      <div className="mt-12 text-center text-gray-500 text-sm">
+        <p>Powered by Vocelio AI - The Future of Voice Technology</p>
       </div>
     </div>
   );
@@ -1500,6 +1325,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
             stats={stats} 
             liveCallsData={liveCallsData}
             systemHealth={systemHealth}
+            user={user}
           />
         );
       case 'calling':
@@ -1618,6 +1444,10 @@ const VocilioDashboard = ({ onLogout, user }) => {
         }
         return <DepartmentsPage />;
 
+      // Campaign Builder - redirect to Omnichannel Campaigns
+      case 'campaign-builder':
+        return <OmnichannelDashboard />;
+      
       // Omnichannel Hub Section
       case 'omnichannel':
       case 'omnichannel-overview':
@@ -1645,6 +1475,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
             stats={stats} 
             liveCallsData={liveCallsData}
             systemHealth={systemHealth}
+            user={user}
           />
         );
     }
@@ -1686,132 +1517,179 @@ const VocilioDashboard = ({ onLogout, user }) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Enhanced Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+        {/* Modern Customer Header */}
+        <header className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200/50 px-8 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-900 capitalize">
-                {activeSection.replace('-', ' ')}
-              </h1>
-              
-              {/* Enhanced Status Indicators */}
-              <div className="flex items-center space-x-4">
-                {/* System Health */}
-                <SystemHealthIndicator health={systemHealth} />
-                
-                {/* Connection Status */}
-                <ConnectionStatus 
-                  isOnline={isOnline} 
-                  wsConnected={wsService.getStatus()?.connected || false} 
-                />
-                
-                {/* Error Indicator */}
-                {error && (
-                  <div className="flex items-center space-x-2 text-amber-600 bg-amber-50 px-3 py-1 rounded-full">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span className="text-sm">Limited functionality</span>
-                  </div>
-                )}
+            {/* Welcome Section */}
+            <div className="flex items-center space-x-6">
+              <div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  {activeSection === 'home' ? `Welcome back, ${userInfo?.name?.split(' ')[0] || 'User'}!` : 
+                   activeSection.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </h1>
+                <p className="text-slate-600 mt-1">
+                  {activeSection === 'home' ? 
+                    'Your AI-powered voice communication center' : 
+                    'Manage your voice campaigns with ease'
+                  }
+                </p>
               </div>
+              
+              {/* Quick Stats Badge */}
+              {activeSection === 'home' && (
+                <div className="hidden lg:flex items-center space-x-4">
+                  <div className="bg-white/80 backdrop-blur-sm border border-emerald-200 rounded-xl px-4 py-3 shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-slate-700 font-medium">Status: Active</span>
+                    </div>
+                  </div>
+                  <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl px-4 py-3 shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm text-slate-700 font-medium">AI Enhanced</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center space-x-4">
-              {/* Enhanced Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search campaigns, contacts, calls..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80 transition-all hover:border-gray-400"
-                />
+              {/* Modern Search Bar */}
+              <div className="hidden md:block relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity blur-xl"></div>
+                <div className="relative bg-white/90 backdrop-blur-sm border border-slate-300/50 rounded-2xl overflow-hidden shadow-sm">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search anything..."
+                    className="pl-12 pr-6 py-4 w-72 bg-transparent focus:outline-none text-slate-700 placeholder-slate-400"
+                  />
+                </div>
               </div>
               
-              {/* Notification Bell with Badge */}
-              <NotificationBell 
-                count={unreadNotificationCount}
-                onClick={() => {
-                  // TODO: Open notifications panel
-                  console.log('Open notifications');
-                }}
-              />
+              {/* Modern Action Buttons */}
+              <div className="flex items-center space-x-3">
+                {/* Notification Bell */}
+                <button className="relative p-3 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl hover:bg-white transition-all shadow-sm group">
+                  <Bell className="w-5 h-5 text-slate-600 group-hover:text-slate-800" />
+                  {unreadNotificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
+                      {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                    </span>
+                  )}
+                </button>
+                
+                {/* Premium Action Button */}
+                <button 
+                  onClick={() => setActiveSection('omnichannel-campaigns')}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-2xl font-semibold flex items-center space-x-3 shadow-lg hover:shadow-xl transition-all transform hover:scale-105 group"
+                >
+                  <div className="w-5 h-5 bg-white/20 rounded-lg flex items-center justify-center">
+                    <Plus className="w-3 h-3" />
+                  </div>
+                  <span>Create Campaign</span>
+                  <div className="w-1 h-1 bg-white/40 rounded-full group-hover:animate-ping"></div>
+                </button>
+              </div>
               
-              {/* Enhanced New Campaign Button */}
-              <button 
-                onClick={() => setActiveSection('campaign-builder')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2 transition-all hover:shadow-lg"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Campaign</span>
-              </button>
-              
-              {/* User Profile with Functional Dropdown */}
+              {/* Modern User Profile */}
               <div className="relative profile-dropdown">
                 <button 
                   onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                  className="flex items-center space-x-2 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors w-full"
+                  className="flex items-center space-x-3 bg-white/90 backdrop-blur-sm border border-slate-200 rounded-2xl px-4 py-3 hover:bg-white hover:shadow-md transition-all group"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center ring-2 ring-white shadow-sm">
+                    <span className="text-white text-sm font-bold">
                       {userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}
                     </span>
                   </div>
-                  <div className="hidden md:block text-left flex-1">
-                    <div className="text-sm font-medium text-gray-900">
+                  <div className="hidden lg:block text-left">
+                    <div className="text-sm font-semibold text-slate-800">
                       {userInfo?.name || userInfo?.email || 'User'}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {userInfo?.role || 'User'}
+                    <div className="text-xs text-slate-500 flex items-center space-x-1">
+                      <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
+                      <span>Premium User</span>
                     </div>
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform group-hover:text-slate-600 ${showProfileDropdown ? 'rotate-180' : ''}`} />
                 </button>
                 
-                {/* Dropdown Menu */}
+                {/* Modern Dropdown Menu */}
                 {showProfileDropdown && (
-                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <div className="text-sm font-medium text-gray-900">
-                        {userInfo?.name || userInfo?.email || 'User'}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {userInfo?.email || 'No email'}
+                  <div className="absolute top-full right-0 mt-3 w-72 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-slate-200/50 py-3 z-50">
+                    {/* User Info Header */}
+                    <div className="px-6 py-4 border-b border-slate-100">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold">
+                            {userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-800">
+                            {userInfo?.name || userInfo?.email || 'User'}
+                          </div>
+                          <div className="text-sm text-slate-500">
+                            {userInfo?.email || 'No email'}
+                          </div>
+                        </div>
                       </div>
                     </div>
                     
-                    <button
-                      onClick={() => {
-                        setActiveSection('settings');
-                        setShowProfileDropdown(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      <span>Account Settings</span>
-                    </button>
+                    {/* Menu Items */}
+                    <div className="py-2">
+                      <button
+                        onClick={() => {
+                          setActiveSection('settings');
+                          setShowProfileDropdown(false);
+                        }}
+                        className="w-full text-left px-6 py-3 text-slate-700 hover:bg-slate-50 flex items-center space-x-3 transition-colors group"
+                      >
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                          <Settings className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Account Settings</div>
+                          <div className="text-xs text-slate-500">Manage your preferences</div>
+                        </div>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          notificationService.showInfo('Help & Support coming soon!');
+                        }}
+                        className="w-full text-left px-6 py-3 text-slate-700 hover:bg-slate-50 flex items-center space-x-3 transition-colors group"
+                      >
+                        <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
+                          <HelpCircle className="w-4 h-4 text-emerald-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Help & Support</div>
+                          <div className="text-xs text-slate-500">Get assistance and tutorials</div>
+                        </div>
+                      </button>
+                    </div>
                     
-                    <button
-                      onClick={() => {
-                        setShowProfileDropdown(false);
-                        // Show help or support section
-                        notificationService.showInfo('Help & Support coming soon!');
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                    >
-                      <HelpCircle className="w-4 h-4" />
-                      <span>Help & Support</span>
-                    </button>
-                    
-                    <div className="border-t border-gray-100 mt-1 pt-1">
+                    {/* Logout Section */}
+                    <div className="border-t border-slate-100 pt-2">
                       <button
                         onClick={() => {
                           setShowProfileDropdown(false);
                           authManager.logout();
                           window.location.href = '/';
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                        className="w-full text-left px-6 py-3 text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors group"
                       >
-                        <LogOut className="w-4 h-4" />
-                        <span>Sign Out</span>
+                        <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center group-hover:bg-red-200 transition-colors">
+                          <LogOut className="w-4 h-4 text-red-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Sign Out</div>
+                          <div className="text-xs text-red-500/70">End your session</div>
+                        </div>
                       </button>
                     </div>
                   </div>
@@ -1820,37 +1698,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
             </div>
           </div>
           
-          {/* Real-time Activity Bar */}
-          {(stats.activeCalls > 0 || systemHealth.status !== 'healthy') && (
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <div className="flex items-center space-x-6">
-                {stats.activeCalls > 0 && (
-                  <div className="flex items-center space-x-2 text-green-600">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>{stats.activeCalls} active calls</span>
-                  </div>
-                )}
-                
-                {systemHealth.status === 'degraded' && (
-                  <div className="flex items-center space-x-2 text-yellow-600">
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>Some services are experiencing issues</span>
-                  </div>
-                )}
-                
-                {systemHealth.status === 'critical' && (
-                  <div className="flex items-center space-x-2 text-red-600">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>Critical services are down</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="text-gray-500">
-                Last updated: {new Date().toLocaleTimeString()}
-              </div>
-            </div>
-          )}
+
         </header>
 
         {/* Content Area */}
