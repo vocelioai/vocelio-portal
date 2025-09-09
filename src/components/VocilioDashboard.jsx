@@ -282,236 +282,404 @@ const HomeSection = ({ stats, liveCallsData, systemHealth }) => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header with System Status */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard Overview</h2>
-          <p className="text-gray-600">Real-time insights powered by AI</p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0">
+        {/* Neural Network Animation */}
+        <div className="absolute top-10 left-10 w-32 h-32 opacity-20">
+          <div className="w-full h-full border border-cyan-400/30 rounded-full animate-pulse"></div>
+          <div className="absolute top-4 left-4 w-24 h-24 border border-purple-400/30 rounded-full animate-ping"></div>
+          <div className="absolute top-8 left-8 w-16 h-16 border border-blue-400/30 rounded-full animate-bounce"></div>
         </div>
-        <div className="flex items-center space-x-4">
-          {/* System Health Indicator */}
-          <div className="flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${
-              systemHealth.status === 'healthy' ? 'bg-green-500' : 
-              systemHealth.status === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'
-            }`}></div>
-            <span className="text-sm text-gray-600">
-              System {systemHealth.status || 'healthy'}
-            </span>
+        
+        {/* Floating Particles */}
+        <div className="absolute top-1/4 right-20 w-2 h-2 bg-cyan-400 rounded-full animate-pulse opacity-60"></div>
+        <div className="absolute top-1/2 right-40 w-1 h-1 bg-purple-400 rounded-full animate-ping opacity-40"></div>
+        <div className="absolute bottom-1/4 left-20 w-3 h-3 bg-blue-400 rounded-full animate-bounce opacity-50"></div>
+        
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent"></div>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 space-y-8 p-6 animate-fade-in">
+        {/* Futuristic Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse"></div>
+              <h2 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                AI Command Center
+              </h2>
+            </div>
+            <p className="text-slate-400 text-lg flex items-center space-x-2">
+              <Brain className="w-5 h-5 text-cyan-400 animate-pulse" />
+              <span>Neural network-powered voice intelligence</span>
+            </p>
           </div>
           
-          {/* Refresh Button */}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="flex items-center space-x-2 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Enhanced Stats Cards with AI Predictions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <EnhancedStatCard 
-          title="Total Calls" 
-          value={stats.totalCalls?.toLocaleString() || '0'} 
-          icon={PhoneCall} 
-          color="blue"
-          prediction={stats.predictions?.totalCalls}
-          trend={stats.trends?.totalCalls}
-        />
-        <EnhancedStatCard 
-          title="Appointments" 
-          value={stats.appointments?.toLocaleString() || '0'} 
-          icon={Calendar} 
-          color="green"
-          prediction={stats.predictions?.appointments}
-          trend={stats.trends?.appointments}
-        />
-        <EnhancedStatCard 
-          title="Revenue Generated" 
-          value={`$${((stats.revenue || 0) / 1000000).toFixed(1)}M`} 
-          icon={DollarSign} 
-          color="purple"
-          prediction={stats.predictions?.revenue}
-          trend={stats.trends?.revenue}
-        />
-        <EnhancedStatCard 
-          title="ROI" 
-          value={`${(stats.roi || 0).toLocaleString()}%`} 
-          icon={TrendingUp} 
-          color="orange"
-          prediction={stats.predictions?.roi}
-          trend={stats.trends?.roi}
-        />
-        {/* Wallet Balance Card */}
-        <div className="bg-gradient-to-br from-green-50 to-blue-50 rounded-xl border border-green-200 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <Wallet className="w-6 h-6 text-green-600" />
-            <button 
-              onClick={() => setActiveSection('wallet-balance')}
-              className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          <div className="flex items-center space-x-6">
+            {/* AI System Status */}
+            <div className="bg-slate-800/50 backdrop-blur-sm border border-cyan-500/30 rounded-2xl px-4 py-3">
+              <div className="flex items-center space-x-3">
+                <div className="relative">
+                  <div className={`w-4 h-4 rounded-full ${
+                    systemHealth.status === 'healthy' ? 'bg-green-400' : 
+                    systemHealth.status === 'degraded' ? 'bg-yellow-400' : 'bg-red-400'
+                  } animate-pulse`}></div>
+                  <div className={`absolute inset-0 w-4 h-4 rounded-full ${
+                    systemHealth.status === 'healthy' ? 'bg-green-400' : 
+                    systemHealth.status === 'degraded' ? 'bg-yellow-400' : 'bg-red-400'
+                  } animate-ping opacity-30`}></div>
+                </div>
+                <span className="text-slate-300 font-medium">
+                  AI System {systemHealth.status || 'Online'}
+                </span>
+              </div>
+            </div>
+            
+            {/* Neural Sync Button */}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105 disabled:opacity-50 flex items-center space-x-2 border border-cyan-400/30"
             >
-              Manage →
+              <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Neural Sync</span>
             </button>
           </div>
-          <div className="space-y-1">
-            <div className="text-sm text-gray-600">Wallet Balance</div>
-            <div className="text-lg font-bold text-green-600">$4.00</div>
-            <div className="text-xs text-gray-500">50 free min left</div>
+        </div>
+
+        {/* Holographic Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          {/* AI Enhanced Stat Cards */}
+          <div className="bg-slate-800/30 backdrop-blur-md border border-cyan-500/30 rounded-2xl p-6 hover:border-cyan-400/50 transition-all duration-300 group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <PhoneCall className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-right">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-400 text-sm font-medium">Neural Calls</p>
+              <p className="text-3xl font-bold text-white">{stats.totalCalls?.toLocaleString() || '0'}</p>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-green-400" />
+                <span className="text-green-400 text-sm">+12.5%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/30 backdrop-blur-md border border-green-500/30 rounded-2xl p-6 hover:border-green-400/50 transition-all duration-300 group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-right">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-400 text-sm font-medium">Smart Bookings</p>
+              <p className="text-3xl font-bold text-white">{stats.appointments?.toLocaleString() || '0'}</p>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-green-400" />
+                <span className="text-green-400 text-sm">+8.3%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/30 backdrop-blur-md border border-purple-500/30 rounded-2xl p-6 hover:border-purple-400/50 transition-all duration-300 group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <DollarSign className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-right">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-400 text-sm font-medium">AI Revenue</p>
+              <p className="text-3xl font-bold text-white">${((stats.revenue || 0) / 1000000).toFixed(1)}M</p>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-green-400" />
+                <span className="text-green-400 text-sm">+15.7%</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-slate-800/30 backdrop-blur-md border border-orange-500/30 rounded-2xl p-6 hover:border-orange-400/50 transition-all duration-300 group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Target className="w-6 h-6 text-white" />
+              </div>
+              <div className="text-right">
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-400 text-sm font-medium">ROI Matrix</p>
+              <p className="text-3xl font-bold text-white">{(stats.roi || 0).toLocaleString()}%</p>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-green-400" />
+                <span className="text-green-400 text-sm">+5.2%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quantum Wallet */}
+          <div className="bg-gradient-to-br from-slate-800/50 to-emerald-900/30 backdrop-blur-md border border-emerald-500/30 rounded-2xl p-6 hover:border-emerald-400/50 transition-all duration-300 group">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Wallet className="w-6 h-6 text-white" />
+              </div>
+              <button 
+                onClick={() => setActiveSection('wallet-balance')}
+                className="text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors"
+              >
+                Access →
+              </button>
+            </div>
+            <div className="space-y-2">
+              <p className="text-slate-400 text-sm font-medium">Quantum Wallet</p>
+              <p className="text-3xl font-bold text-emerald-400">$4.00</p>
+              <p className="text-slate-500 text-sm">50 neural minutes remaining</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* AI Insights Panel */}
-      {stats.aiInsights && Object.keys(stats.aiInsights).length > 0 && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Brain className="w-6 h-6 text-blue-600" />
+        {/* AI Neural Network Insights */}
+        <div className="bg-slate-800/20 backdrop-blur-md border border-cyan-500/20 rounded-3xl p-8">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center">
+              <Brain className="w-8 h-8 text-white animate-pulse" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">AI Insights</h3>
-              <p className="text-sm text-gray-600">Powered by Vocilio Intelligence</p>
+              <h3 className="text-2xl font-bold text-white">Neural Intelligence Matrix</h3>
+              <p className="text-slate-400">Advanced AI predictions and behavioral analysis</p>
+            </div>
+            <div className="ml-auto">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
+                <span className="text-cyan-400 text-sm font-medium">Processing</span>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(stats.aiInsights).map(([key, insight]) => (
-              <div key={key} className="bg-white rounded-lg p-4 border border-blue-100">
-                <h4 className="font-medium text-gray-900 mb-2">{insight.title}</h4>
-                <p className="text-sm text-gray-600 mb-3">{insight.message}</p>
-                {insight.confidence && (
-                  <div className="flex items-center space-x-2">
-                    <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${insight.confidence}%` }}
-                      ></div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-slate-900/50 border border-blue-500/30 rounded-2xl p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Zap className="w-6 h-6 text-blue-400" />
+                <h4 className="text-white font-semibold">Predictive Analysis</h4>
+              </div>
+              <p className="text-slate-300 text-sm mb-3">Next hour call volume prediction shows 23% increase in inbound traffic</p>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full w-3/4 animate-pulse"></div>
+              </div>
+              <p className="text-blue-400 text-xs mt-2">94% accuracy</p>
+            </div>
+
+            <div className="bg-slate-900/50 border border-purple-500/30 rounded-2xl p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Activity className="w-6 h-6 text-purple-400" />
+                <h4 className="text-white font-semibold">Voice Pattern Analysis</h4>
+              </div>
+              <p className="text-slate-300 text-sm mb-3">Emotion detection shows 87% positive sentiment in recent calls</p>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full w-5/6 animate-pulse"></div>
+              </div>
+              <p className="text-purple-400 text-xs mt-2">87% positive</p>
+            </div>
+
+            <div className="bg-slate-900/50 border border-green-500/30 rounded-2xl p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <Target className="w-6 h-6 text-green-400" />
+                <h4 className="text-white font-semibold">Optimization Engine</h4>
+              </div>
+              <p className="text-slate-300 text-sm mb-3">AI recommends adjusting call timing for 15% better conversion rates</p>
+              <div className="w-full bg-slate-700 rounded-full h-2">
+                <div className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full w-4/5 animate-pulse"></div>
+              </div>
+              <p className="text-green-400 text-xs mt-2">+15% performance</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Holographic Campaign Center & Neural Activity Monitor */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Quantum Campaign Hub */}
+          <div className="bg-slate-800/20 backdrop-blur-md border border-blue-500/30 rounded-3xl p-8 hover:border-blue-400/50 transition-all duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Quantum Campaigns</h3>
+                  <p className="text-slate-400 text-sm">Omnichannel Neural Hub</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setActiveSection('omnichannel-campaigns')}
+                className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors flex items-center space-x-1"
+              >
+                <span>Neural Access</span>
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="text-center py-12 bg-gradient-to-br from-blue-900/30 to-purple-900/30 rounded-2xl border border-blue-500/20">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-10 h-10 text-white animate-pulse" />
+              </div>
+              <p className="text-2xl font-bold text-white mb-2">Neural Orchestration Ready</p>
+              <p className="text-slate-400 mb-6">Multi-dimensional campaign management through quantum processing</p>
+              <button 
+                onClick={() => setActiveSection('omnichannel-campaigns')}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-300 transform hover:scale-105"
+              >
+                Activate Neural Campaigns
+              </button>
+            </div>
+          </div>
+
+          {/* Live Neural Activity Monitor */}
+          <div className="bg-slate-800/20 backdrop-blur-md border border-green-500/30 rounded-3xl p-8 hover:border-green-400/50 transition-all duration-300">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Neural Activity Stream</h3>
+                  <p className="text-slate-400 text-sm">Real-time consciousness monitoring</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-ping"></div>
+                <span className="text-green-400 text-sm font-medium">{stats.activeCalls || 0} active neural links</span>
+              </div>
+            </div>
+            
+            <div className="space-y-3 max-h-80 overflow-y-auto">
+              {liveCallsData.slice(0, 6).map((call) => (
+                <div key={call.id} className="bg-slate-900/40 border border-slate-700/50 rounded-2xl p-4 hover:border-green-500/30 transition-all duration-300">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="text-white font-medium flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span>{call.contact}</span>
+                      </div>
+                      <div className="text-slate-400 text-sm flex items-center space-x-2 mt-1">
+                        <span>{call.phone}</span>
+                        {call.location && (
+                          <>
+                            <span className="text-slate-600">•</span>
+                            <span>{call.location}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-xs text-gray-500">{insight.confidence}% confidence</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Active Campaigns & Live Activity - Enhanced */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Enhanced Active Campaigns */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 animate-slide-up">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Active Campaigns</h3>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">Omnichannel Hub</span>
-              <button 
-                onClick={() => setActiveSection('omnichannel-campaigns')}
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-              >
-                View All
-              </button>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div className="text-center py-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-100">
-              <MessageSquare className="w-12 h-12 mx-auto mb-3 text-blue-500" />
-              <p className="text-lg font-medium mb-2 text-gray-900">Campaign Orchestration Available</p>
-              <p className="text-sm text-gray-600 mb-4">Manage multi-channel campaigns through the Omnichannel Hub</p>
-              <button 
-                onClick={() => setActiveSection('omnichannel-campaigns')}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200 text-sm font-medium"
-              >
-                Launch Omnichannel Campaigns
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Enhanced Live Call Activity */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 animate-slide-up">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Live Call Activity</h3>
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-gray-600">{stats.activeCalls || 0} active calls</span>
-            </div>
-          </div>
-          <div className="space-y-3 max-h-80 overflow-y-auto">
-            {liveCallsData.slice(0, 8).map((call) => (
-              <div key={call.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                <div className="flex-1">
-                  <div className="font-medium text-gray-900">{call.contact}</div>
-                  <div className="text-sm text-gray-500 flex items-center space-x-2">
-                    <span>{call.phone}</span>
-                    {call.location && (
-                      <>
-                        <span>•</span>
-                        <span>{call.location}</span>
-                      </>
-                    )}
+                    <div className="text-right">
+                      <div className="text-green-400 font-medium">{call.duration}</div>
+                      <div className={`text-xs px-3 py-1 rounded-full border ${
+                        call.status === 'in-progress' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' :
+                        call.status === 'ringing' ? 'bg-yellow-500/20 border-yellow-500/30 text-yellow-400' :
+                        call.status === 'connected' ? 'bg-green-500/20 border-green-500/30 text-green-400' :
+                        'bg-slate-500/20 border-slate-500/30 text-slate-400'
+                      }`}>
+                        {call.status.replace('-', ' ')}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">{call.duration}</div>
-                  <div className={`text-xs px-2 py-1 rounded-full ${
-                    call.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                    call.status === 'ringing' ? 'bg-yellow-100 text-yellow-800' :
-                    call.status === 'connected' ? 'bg-green-100 text-green-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {call.status.replace('-', ' ')}
+              ))}
+              {liveCallsData.length === 0 && (
+                <div className="text-center py-12 text-slate-500">
+                  <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <PhoneCall className="w-8 h-8 text-slate-600" />
                   </div>
+                  <p className="text-lg">Neural network standby</p>
+                  <p className="text-sm text-slate-600">Awaiting incoming connections</p>
                 </div>
-              </div>
-            ))}
-            {liveCallsData.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <PhoneCall className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No active calls</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Enhanced Quick Actions with Smart Suggestions */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 animate-slide-up">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Quick Actions</h3>
-          <span className="text-sm text-gray-500">AI-powered suggestions</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <SmartQuickActionCard 
-            title="Start New Campaign" 
-            icon={Plus} 
-            color="blue"
-            onClick={() => setActiveSection('campaign-builder')}
-            badge={stats.aiInsights?.suggestNewCampaign ? 'AI Suggested' : null}
-          />
-          <SmartQuickActionCard 
-            title="Upload Contacts" 
-            icon={Upload} 
-            color="green"
-            onClick={() => setActiveSection('upload-import')}
-            badge={stats.aiInsights?.needMoreContacts ? 'Recommended' : null}
-          />
-          <SmartQuickActionCard 
-            title="Test Voice Quality" 
-            icon={Mic} 
-            color="purple"
-            onClick={() => setActiveSection('voice-settings')}
-          />
-          <SmartQuickActionCard 
-            title="View Analytics" 
-            icon={BarChart3} 
-            color="orange"
-            onClick={() => setActiveSection('analytics')}
-            badge="Updated"
-          />
+        {/* Quantum Action Matrix */}
+        <div className="bg-slate-800/20 backdrop-blur-md border border-purple-500/30 rounded-3xl p-8">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center space-x-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
+                <Zap className="w-6 h-6 text-white animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">Quantum Action Matrix</h3>
+                <p className="text-slate-400">AI-powered neural command center</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-purple-400 rounded-full animate-ping"></div>
+              <span className="text-purple-400 text-sm font-medium">Neural optimization active</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <button 
+              onClick={() => setActiveSection('campaign-builder')}
+              className="bg-gradient-to-br from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-2xl p-6 hover:border-blue-400/50 transition-all duration-300 transform hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Plus className="w-6 h-6 text-white" />
+              </div>
+              <h4 className="text-white font-semibold mb-2">Neural Campaign</h4>
+              <p className="text-slate-400 text-sm">Initialize new quantum campaign matrix</p>
+              {stats.aiInsights?.suggestNewCampaign && (
+                <div className="mt-2 text-xs bg-gradient-to-r from-cyan-500 to-blue-500 text-white px-2 py-1 rounded-full">
+                  AI Recommended
+                </div>
+              )}
+            </button>
+
+            <button 
+              onClick={() => setActiveSection('upload-import')}
+              className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-2xl p-6 hover:border-green-400/50 transition-all duration-300 transform hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Upload className="w-6 h-6 text-white" />
+              </div>
+              <h4 className="text-white font-semibold mb-2">Data Upload</h4>
+              <p className="text-slate-400 text-sm">Import contacts to neural database</p>
+            </button>
+
+            <button 
+              onClick={() => setActiveSection('voice-settings')}
+              className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-2xl p-6 hover:border-purple-400/50 transition-all duration-300 transform hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Mic className="w-6 h-6 text-white" />
+              </div>
+              <h4 className="text-white font-semibold mb-2">Voice Neural</h4>
+              <p className="text-slate-400 text-sm">Calibrate voice synthesis matrix</p>
+            </button>
+
+            <button 
+              onClick={() => setActiveSection('analytics')}
+              className="bg-gradient-to-br from-orange-600/20 to-red-600/20 border border-orange-500/30 rounded-2xl p-6 hover:border-orange-400/50 transition-all duration-300 transform hover:scale-105 group"
+            >
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <h4 className="text-white font-semibold mb-2">Analytics Core</h4>
+              <p className="text-slate-400 text-sm">Access quantum data insights</p>
+              <div className="mt-2 text-xs bg-gradient-to-r from-orange-500 to-red-500 text-white px-2 py-1 rounded-full">
+                Updated
+              </div>
+            </button>
+          </div>
         </div>
       </div>
     </div>
