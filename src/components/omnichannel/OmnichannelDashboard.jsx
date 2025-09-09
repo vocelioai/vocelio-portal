@@ -25,6 +25,9 @@ import IntelligentRoutingPanel from './IntelligentRoutingPanel';
 // ===== COPILOT PROMPT #4: Real-Time WebSocket Integration =====
 import RealTimeDashboard from './RealTimeDashboard';
 
+// ===== COPILOT PROMPT #5: Analytics & Reporting Dashboard =====
+import AnalyticsDashboard from '../analytics/AnalyticsDashboard';
+
 // Channel Status Component
 const ChannelStatusCard = ({ channel, status, activeCount, metrics }) => {
   const getChannelIcon = (channelType) => {
@@ -520,11 +523,7 @@ const OmnichannelDashboard = () => {
           )}
 
           {activeTab === 'analytics' && (
-            <div className="text-center py-12">
-              <BarChart3 className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Advanced Analytics</h3>
-              <p className="text-gray-600">Comprehensive analytics dashboard coming soon...</p>
-            </div>
+            <AnalyticsDashboard isActive={activeTab === 'analytics'} />
           )}
         </div>
       </div>
