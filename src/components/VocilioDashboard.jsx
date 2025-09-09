@@ -759,6 +759,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
   const [systemHealth, setSystemHealth] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   // 🎯 NEW: Get user and tenant context
   const userInfo = authManager.getUserInfo();
@@ -774,6 +775,20 @@ const VocilioDashboard = ({ onLogout, user }) => {
       cleanupEventListeners();
     };
   }, []);
+
+  // Close profile dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProfileDropdown && !event.target.closest('.profile-dropdown')) {
+        setShowProfileDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showProfileDropdown]);
 
   // Initialize dashboard with world-class services
   const initializeDashboard = useCallback(async () => {
@@ -1394,18 +1409,78 @@ const VocilioDashboard = ({ onLogout, user }) => {
                 <span>New Campaign</span>
               </button>
               
-              {/* User Profile with Dropdown */}
-              <div className="relative">
-                <button className="flex items-center space-x-2 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors">
+              {/* User Profile with Functional Dropdown */}
+              <div className="relative profile-dropdown">
+                <button 
+                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                  className="flex items-center space-x-2 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors w-full"
+                >
                   <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">JD</span>
+                    <span className="text-white text-sm font-medium">
+                      {userInfo?.name?.charAt(0) || userInfo?.email?.charAt(0) || 'U'}
+                    </span>
                   </div>
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium text-gray-900">John Doe</div>
-                    <div className="text-xs text-gray-500">Admin</div>
+                  <div className="hidden md:block text-left flex-1">
+                    <div className="text-sm font-medium text-gray-900">
+                      {userInfo?.name || userInfo?.email || 'User'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {userInfo?.role || 'User'}
+                    </div>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                  <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProfileDropdown ? 'rotate-180' : ''}`} />
                 </button>
+                
+                {/* Dropdown Menu */}
+                {showProfileDropdown && (
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <div className="text-sm font-medium text-gray-900">
+                        {userInfo?.name || userInfo?.email || 'User'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {userInfo?.email || 'No email'}
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        setActiveSection('settings');
+                        setShowProfileDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Account Settings</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        // Show help or support section
+                        notificationService.showInfo('Help & Support coming soon!');
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      <span>Help & Support</span>
+                    </button>
+                    
+                    <div className="border-t border-gray-100 mt-1 pt-1">
+                      <button
+                        onClick={() => {
+                          setShowProfileDropdown(false);
+                          authManager.logout();
+                          window.location.href = '/';
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
