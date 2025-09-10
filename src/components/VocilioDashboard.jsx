@@ -53,7 +53,11 @@ import VoicesPageNew from './VoicesPageNew';
 // Import tool integration settings
 import ToolIntegrationSettings from './settings/ToolIntegrationSettings.jsx';
 
-
+// Import contact management components
+import ContactLists from './contacts/ContactLists.jsx';
+import UploadImport from './contacts/UploadImport.jsx';
+import CRMSync from './contacts/CRMSync.jsx';
+import DNCManagement from './contacts/DNCManagement.jsx';
 
 // Import call transfer components
 import DepartmentsPage from './call-transfer/DepartmentsPage.jsx';
@@ -538,14 +542,29 @@ const CallFlowsSection = () => (
   </div>
 );
 
-const ContactsSection = () => (
-  <div className="animate-fade-in">
-    <h2 className="text-2xl font-bold mb-6">Contacts</h2>
-    <div className="bg-white p-6 rounded-lg">
-      <p>Contact list management</p>
+const ContactsSection = ({ subSection }) => {
+  // Determine which contact management component to render based on subSection
+  const renderContactComponent = () => {
+    switch (subSection) {
+      case 'contact-lists':
+        return <ContactLists />;
+      case 'upload-import':
+        return <UploadImport />;
+      case 'crm-sync':
+        return <CRMSync />;
+      case 'dnc-management':
+        return <DNCManagement />;
+      default:
+        return <ContactLists />; // Default to contact lists
+    }
+  };
+
+  return (
+    <div className="animate-fade-in">
+      {renderContactComponent()}
     </div>
-  </div>
-);
+  );
+};
 
 const AnalyticsSection = ({ stats }) => (
   <div className="animate-fade-in">
@@ -1335,7 +1354,10 @@ const VocilioDashboard = ({ onLogout, user }) => {
         return <VoicesPageNew />;
       case 'contacts':
       case 'contact-lists':
-        return <ContactsSection />;
+      case 'upload-import':
+      case 'crm-sync':
+      case 'dnc-management':
+        return <ContactsSection subSection={activeSection} />;
       
       // 💰 Wallet & Usage Sections
       case 'wallet':
