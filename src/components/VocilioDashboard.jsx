@@ -9,7 +9,7 @@ import {
   Activity, Wifi, WifiOff, Server, Database, Cloud, 
   LineChart, PieChart, BarChart, TrendingDown, AlertTriangle, LogOut,
   Wallet, Receipt, PieChart as UsageIcon, PhoneForwarded, Building2, User,
-  FileText, Volume2
+  FileText, Volume2, Video
 } from 'lucide-react';
 
 // 🎯 UPDATED: Import enhanced services with multi-tenant support
@@ -62,6 +62,9 @@ import CallLogsPage from './call-transfer/CallLogsPage.jsx';
 
 // Import Omnichannel Dashboard
 import OmnichannelDashboard from './omnichannel/OmnichannelDashboard.jsx';
+
+// Import WebRTC Video Call Component
+import WebRTCVideoCall from './webrtc/WebRTCVideoCall.jsx';
 
 // Enhanced Utility Components with AI Integration
 const EnhancedStatCard = ({ title, value, icon: Icon, color, prediction, trend }) => {
@@ -1240,6 +1243,16 @@ const VocilioDashboard = ({ onLogout, user }) => {
       ]
     },
     { 
+      id: 'webrtc', 
+      label: 'Video Calls', 
+      icon: Video,
+      subitems: [
+        { id: 'video-call', label: 'Start Video Call' },
+        { id: 'call-history', label: 'Call History' },
+        { id: 'webrtc-settings', label: 'Video Settings' }
+      ]
+    },
+    { 
       id: 'analytics', 
       label: 'Analytics', 
       icon: TrendingUp,
@@ -1438,6 +1451,94 @@ const VocilioDashboard = ({ onLogout, user }) => {
       case 'omnichannel-routing':
       case 'omnichannel-campaigns':
         return <OmnichannelDashboard />;
+      
+      // WebRTC Video Calls Section
+      case 'webrtc':
+      case 'video-call':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Video Call</h2>
+              <p className="text-gray-600">Enterprise video calling with phone bridge integration</p>
+            </div>
+            <WebRTCVideoCall 
+              roomId={`room_${Date.now()}`}
+              showControls={true}
+              autoStart={false}
+            />
+          </div>
+        );
+      
+      case 'call-history':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Video Call History</h2>
+              <p className="text-gray-600">View and manage your video call recordings and history</p>
+            </div>
+            <div className="bg-white rounded-lg border p-6 text-center">
+              <Video className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Call History</h3>
+              <p className="text-gray-600 mb-4">Your video call history will appear here</p>
+              <button
+                onClick={() => setActiveSection('video-call')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Start Video Call
+              </button>
+            </div>
+          </div>
+        );
+      
+      case 'webrtc-settings':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Video Settings</h2>
+              <p className="text-gray-600">Configure your camera, microphone, and video quality settings</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-lg border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Camera Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Camera Device</label>
+                    <select className="w-full p-2 border border-gray-300 rounded-lg">
+                      <option>Default Camera</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Video Quality</label>
+                    <select className="w-full p-2 border border-gray-300 rounded-lg">
+                      <option value="720p">HD (720p)</option>
+                      <option value="1080p">Full HD (1080p)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-white rounded-lg border p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Audio Settings</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Microphone Device</label>
+                    <select className="w-full p-2 border border-gray-300 rounded-lg">
+                      <option>Default Microphone</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Noise Cancellation</label>
+                    <select className="w-full p-2 border border-gray-300 rounded-lg">
+                      <option value="auto">Auto</option>
+                      <option value="high">High</option>
+                      <option value="off">Off</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       
       case 'analytics':
       case 'performance-reports':
