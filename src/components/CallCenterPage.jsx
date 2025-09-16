@@ -298,6 +298,18 @@ const CallCenterPage = () => {
   // Audio controls
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(80);
+  const [microphoneStream, setMicrophoneStream] = useState(null);
+  const [outputVolume, setOutputVolume] = useState(80);
+  
+  // Audio notifications and tones
+  const audioRefs = useRef({
+    ringingTone: null,
+    dialTone: null,
+    connectTone: null,
+    endTone: null,
+    microphoneStream: null,
+    audioContext: null
+  });
   
   // Transcript
   const [transcript, setTranscript] = useState([]);
@@ -318,10 +330,197 @@ const CallCenterPage = () => {
     }
   }, [audioEnabled]);
 
+  // Audio notification functions
+  const playAudioTone = useCallback((type, options = {}) => {
+    if (!audioEnabled) return;
+
+    try {
+      // Stop any currently playing tone of this type
+      if (audioRefs.current[type]) {
+        audioRefs.current[type].pause();
+        audioRefs.current[type].currentTime = 0;
+      }
+
+      // Create audio tone using Web Audio API for better control
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Configure tone based on type
+      const toneConfig = {
+        ringingTone: { frequency: 440, duration: 3000, pattern: 'ring' },
+        dialTone: { frequency: 350, duration: 1000, pattern: 'continuous' },
+        connectTone: { frequency: 523, duration: 500, pattern: 'beep' },
+        endTone: { frequency: 293, duration: 800, pattern: 'beep' }
+      };
+      
+      const config = toneConfig[type] || toneConfig.dialTone;
+      oscillator.frequency.setValueAtTime(config.frequency, audioContext.currentTime);
+      oscillator.type = 'sine';
+      
+      // Set volume based on user setting
+      const volumeLevel = (volume / 100) * 0.3; // Max 30% to prevent loud sounds
+      gainNode.gain.setValueAtTime(volumeLevel, audioContext.currentTime);
+      
+      if (config.pattern === 'ring') {
+        // Create ringing pattern (on for 2s, off for 4s, repeat)
+        const startTime = audioContext.currentTime;
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 2);
+        
+        // Create repeating pattern for ringing
+        if (options.loop) {
+          const playRingPattern = () => {
+            if (audioRefs.current[type] && !audioRefs.current[type].stopped) {
+              setTimeout(() => {
+                playAudioTone(type, options);
+              }, 4000);
+            }
+          };
+          playRingPattern();
+        }
+      } else {
+        // Simple beep or continuous tone
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + (config.duration / 1000));
+      }
+      
+      // Store reference for cleanup
+      audioRefs.current[type] = {
+        oscillator,
+        audioContext,
+        stopped: false
+      };
+      
+      console.log(`🔊 Playing ${type} tone`);
+      
+    } catch (error) {
+      console.error(`Failed to play ${type}:`, error);
+    }
+  }, [audioEnabled, volume]);
+
+  const stopAudioTone = useCallback((type) => {
+    if (audioRefs.current[type]) {
+      try {
+        audioRefs.current[type].oscillator.stop();
+        audioRefs.current[type].audioContext.close();
+        audioRefs.current[type].stopped = true;
+        audioRefs.current[type] = null;
+        console.log(`🔇 Stopped ${type} tone`);
+      } catch (error) {
+        console.error(`Failed to stop ${type}:`, error);
+      }
+    }
+  }, []);
+
+  const stopAllAudioTones = useCallback(() => {
+    Object.keys(audioRefs.current).forEach(stopAudioTone);
+  }, [stopAudioTone]);
+
+  // Microphone control functions
+  const initializeMicrophone = useCallback(async () => {
+    try {
+      if (!microphoneStream) {
+        console.log('🎤 Requesting microphone access...');
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          } 
+        });
+        
+        setMicrophoneStream(stream);
+        audioRefs.current.microphoneStream = stream;
+        
+        // Create audio context for processing
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const gainNode = audioContext.createGain();
+        
+        source.connect(gainNode);
+        audioRefs.current.audioContext = audioContext;
+        audioRefs.current.gainNode = gainNode;
+        
+        console.log('✅ Microphone initialized successfully');
+        return stream;
+      }
+      return microphoneStream;
+    } catch (error) {
+      console.error('❌ Failed to access microphone:', error);
+      setError('Microphone access denied. Please allow microphone access for call functionality.');
+      throw error;
+    }
+  }, [microphoneStream]);
+
+  const toggleMicrophone = useCallback(async () => {
+    try {
+      if (!microphoneStream) {
+        await initializeMicrophone();
+      }
+      
+      const newMutedState = !isMuted;
+      setIsMuted(newMutedState);
+      
+      if (microphoneStream) {
+        microphoneStream.getAudioTracks().forEach(track => {
+          track.enabled = !newMutedState;
+        });
+        
+        // Also control gain if available
+        if (audioRefs.current.gainNode) {
+          audioRefs.current.gainNode.gain.value = newMutedState ? 0 : (outputVolume / 100);
+        }
+        
+        console.log(`🎤 Microphone ${newMutedState ? 'muted' : 'unmuted'}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to toggle microphone:', error);
+      setError('Failed to control microphone. Please check permissions.');
+    }
+  }, [isMuted, microphoneStream, outputVolume, initializeMicrophone]);
+
+  const updateOutputVolume = useCallback((newVolume) => {
+    setOutputVolume(newVolume);
+    
+    // Update gain node if available
+    if (audioRefs.current.gainNode && !isMuted) {
+      audioRefs.current.gainNode.gain.value = newVolume / 100;
+    }
+    
+    console.log(`🔊 Output volume set to ${newVolume}%`);
+  }, [isMuted]);
+
+  const cleanupMicrophone = useCallback(() => {
+    if (microphoneStream) {
+      microphoneStream.getTracks().forEach(track => track.stop());
+      setMicrophoneStream(null);
+      audioRefs.current.microphoneStream = null;
+    }
+    
+    if (audioRefs.current.audioContext) {
+      audioRefs.current.audioContext.close();
+      audioRefs.current.audioContext = null;
+    }
+    
+    console.log('🎤 Microphone cleaned up');
+  }, [microphoneStream]);
+
   // Load voices on tier change
   useEffect(() => {
     loadVoices();
   }, [voiceTier]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      stopAllAudioTones();
+      cleanupMicrophone();
+    };
+  }, [stopAllAudioTones, cleanupMicrophone]);
 
   const loadVoices = async () => {
     try {
@@ -350,9 +549,19 @@ const CallCenterPage = () => {
       setCallStatus('dialing');
       setError(null);
       
+      // Initialize microphone for the call
+      await initializeMicrophone();
+      
+      // Play dial tone
+      playAudioTone('dialTone');
+      
       const callData = await telephonyAPI.makeCall(phoneNumber, voiceTier, selectedVoice);
       setCurrentCall(callData);
       setCallStatus('ringing');
+      
+      // Stop dial tone and start ringing tone
+      stopAudioTone('dialTone');
+      playAudioTone('ringingTone', { loop: true });
       
       // Start ASR connection
       if (callData.call_sid) {
@@ -370,6 +579,7 @@ const CallCenterPage = () => {
     } catch (error) {
       setError(`Call failed: ${error.message}`);
       setCallStatus('idle');
+      stopAllAudioTones();
     } finally {
       setIsLoading(false);
     }
@@ -381,6 +591,11 @@ const CallCenterPage = () => {
 
     try {
       setIsLoading(true);
+      
+      // Play end call tone
+      stopAllAudioTones();
+      playAudioTone('endTone');
+      
       await telephonyAPI.endCall(currentCall.call_sid);
       
       // Cleanup
@@ -391,6 +606,7 @@ const CallCenterPage = () => {
       
     } catch (error) {
       setError(`Failed to end call: ${error.message}`);
+      stopAllAudioTones();
     } finally {
       setIsLoading(false);
     }
@@ -427,9 +643,24 @@ const CallCenterPage = () => {
     const poll = async () => {
       try {
         const status = await telephonyAPI.getCallStatus(callSid);
-        setCallStatus(status.status || 'unknown');
+        const newStatus = status.status || 'unknown';
         
-        if (status.status === 'completed' || status.status === 'failed') {
+        // Handle status changes with audio feedback
+        if (newStatus !== callStatus) {
+          if (newStatus === 'in-progress' || newStatus === 'answered') {
+            // Call connected - stop ringing, play connect tone
+            stopAudioTone('ringingTone');
+            playAudioTone('connectTone');
+          } else if (newStatus === 'completed' || newStatus === 'failed') {
+            // Call ended - stop all tones, play end tone
+            stopAllAudioTones();
+            playAudioTone('endTone');
+          }
+        }
+        
+        setCallStatus(newStatus);
+        
+        if (newStatus === 'completed' || newStatus === 'failed') {
           telephonyAPI.disconnectASR(callSid);
           setCurrentCall(null);
           setCallStatus('idle');
@@ -651,25 +882,62 @@ const CallCenterPage = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Audio Controls</h3>
               
               <div className="space-y-4">
-                {/* Mute */}
+                {/* Audio Context Status */}
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Microphone</span>
+                  <span className="text-sm font-medium text-gray-700">Audio System</span>
                   <button
-                    onClick={() => setIsMuted(!isMuted)}
-                    className={`p-2 rounded-lg ${
-                      isMuted 
-                        ? 'bg-red-100 text-red-600 hover:bg-red-200' 
-                        : 'bg-green-100 text-green-600 hover:bg-green-200'
+                    onClick={enableAudio}
+                    className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                      audioEnabled 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
                     } transition-colors`}
                   >
-                    {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    {audioEnabled ? '✓ Enabled' : 'Enable Audio'}
                   </button>
                 </div>
 
-                {/* Volume */}
+                {/* Microphone Controls */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700">Microphone</span>
+                  <div className="flex items-center gap-2">
+                    {microphoneStream && (
+                      <span className="text-xs text-green-600">●</span>
+                    )}
+                    <button
+                      onClick={toggleMicrophone}
+                      className={`p-2 rounded-lg ${
+                        isMuted 
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                          : 'bg-green-100 text-green-600 hover:bg-green-200'
+                      } transition-colors`}
+                      title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+                    >
+                      {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Output Volume */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">Volume</span>
+                    <span className="text-sm font-medium text-gray-700">Call Volume</span>
+                    <span className="text-sm text-gray-500">{outputVolume}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={outputVolume}
+                    onChange={(e) => updateOutputVolume(parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+
+                {/* Tone Volume */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">Tone Volume</span>
                     <span className="text-sm text-gray-500">{volume}%</span>
                   </div>
                   <input
@@ -681,6 +949,62 @@ const CallCenterPage = () => {
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
+
+                {/* Microphone Status */}
+                {microphoneStream && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Microphone Status:</span>
+                      <span className={`font-medium ${isMuted ? 'text-red-600' : 'text-green-600'}`}>
+                        {isMuted ? 'Muted' : 'Active'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Audio Test Buttons */}
+                {audioEnabled && (
+                  <div className="pt-3 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mb-2">Test Audio:</p>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <button
+                        onClick={() => playAudioTone('connectTone')}
+                        className="px-2 py-1 text-xs bg-blue-100 text-blue-600 rounded hover:bg-blue-200 transition-colors"
+                      >
+                        Connect
+                      </button>
+                      <button
+                        onClick={() => playAudioTone('endTone')}
+                        className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                      >
+                        End Call
+                      </button>
+                      <button
+                        onClick={() => playAudioTone('dialTone')}
+                        className="px-2 py-1 text-xs bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors"
+                      >
+                        Dial
+                      </button>
+                      <button
+                        onClick={() => playAudioTone('ringingTone')}
+                        className="px-2 py-1 text-xs bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
+                      >
+                        Ring
+                      </button>
+                    </div>
+                    <button
+                      onClick={initializeMicrophone}
+                      disabled={!!microphoneStream}
+                      className={`w-full px-2 py-1 text-xs rounded transition-colors ${
+                        microphoneStream 
+                          ? 'bg-green-100 text-green-600 cursor-not-allowed'
+                          : 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                      }`}
+                    >
+                      {microphoneStream ? '✓ Microphone Ready' : 'Test Microphone'}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
