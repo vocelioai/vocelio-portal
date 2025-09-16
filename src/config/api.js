@@ -100,9 +100,16 @@ export const callTransferAPI = {
 
   // Call Management (NEW)
   getActiveCalls: () => callTransferApiCall('/api/calls/active'),
-  transferCall: (callId, departmentId) => callTransferApiCall('/api/calls/transfer', {
+  transferCall: (callId, departmentId, options = {}) => callTransferApiCall('/api/calls/transfer', {
     method: 'POST',
-    body: JSON.stringify({ call_id: callId, department_id: departmentId })
+    body: JSON.stringify({ 
+      call_id: callId, 
+      target_department: departmentId,
+      transfer_type: options.type || 'warm',
+      transfer_reason: options.reason || 'customer_request',
+      urgency_level: options.urgency || 'medium',
+      context_summary: options.context || 'Dashboard transfer request'
+    })
   }),
   getCallLogs: async (params = {}) => {
     const query = new URLSearchParams();

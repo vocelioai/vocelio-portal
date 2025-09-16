@@ -76,7 +76,16 @@ const LiveCallMonitor = () => {
 
     setTransferring(true);
     try {
-      await callTransferAPI.transferCall(transferModal.call.call_id, selectedDepartment);
+      await callTransferAPI.transferCall(
+        transferModal.call.call_id, 
+        selectedDepartment,
+        {
+          type: 'warm',
+          reason: 'dashboard_transfer',
+          urgency: 'medium',
+          context: `Live monitor transfer for call ${transferModal.call.call_id} from ${transferModal.call.caller_number}`
+        }
+      );
       
       // Close modal and refresh calls
       setTransferModal({ show: false, call: null });
