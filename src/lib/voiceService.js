@@ -565,6 +565,26 @@ class VoiceService {
   }
 
   /**
+   * Get regular voices (Azure TTS)
+   */
+  async getRegularVoices() {
+    if (!this.loadedVoices) {
+      await this.loadAllVoices();
+    }
+    return this.regularVoices;
+  }
+
+  /**
+   * Get premium voices (ElevenLabs TTS)
+   */
+  async getPremiumVoices() {
+    if (!this.loadedVoices) {
+      await this.loadAllVoices();
+    }
+    return this.premiumVoices;
+  }
+
+  /**
    * Get voices by language
    */
   getVoicesByLanguage(language) {

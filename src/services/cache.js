@@ -184,9 +184,11 @@ class CacheService {
     
     for (const endpoint of criticalEndpoints) {
       try {
-        // This would typically call your API
-        const response = await fetch(endpoint.url);
-        const data = await response.json();
+        // Import API service to use proper backend endpoints
+        const { api } = await import('./api.js');
+        
+        // Use the API service instead of direct fetch to relative URLs
+        const data = await api.get(endpoint.url);
         
         this.set(
           this.generateKey(endpoint.url, endpoint.params),
@@ -195,6 +197,12 @@ class CacheService {
         );
       } catch (error) {
         console.warn(`⚠️ Failed to preload ${endpoint.url}:`, error);
+        // For missing endpoints, store a placeholder to prevent repeated requests
+        this.set(
+          this.generateKey(endpoint.url, endpoint.params),
+          { error: 'Endpoint not implemented', available: false },
+          300000 // Cache error state for 5 minutes
+        );
       }
     }
   }

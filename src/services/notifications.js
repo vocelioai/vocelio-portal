@@ -276,45 +276,8 @@ class NotificationService {
   playNotificationSound(type) {
     if (!this.soundEnabled) return;
 
-    // In development, create a silent audio context instead of loading files
-    if (process.env.NODE_ENV === 'development') {
-      this.createSilentNotification(type);
-      return;
-    }
-
-    const sounds = {
-      success: '/sounds/success.mp3',
-      error: '/sounds/error.mp3', 
-      warning: '/sounds/warning.mp3',
-      info: '/sounds/notification.mp3'
-    };
-
-    const audioUrl = sounds[type] || sounds.info;
-    
-    try {
-      const audio = new Audio(audioUrl);
-      audio.volume = 0.3;
-      
-      // Handle audio loading and playback errors gracefully
-      audio.addEventListener('error', (e) => {
-        console.info(`🔇 Audio file not available: ${audioUrl}. Using silent notification.`);
-        this.createSilentNotification(type);
-      });
-      
-      audio.play().catch((error) => {
-        // Ignore autoplay policy errors in development
-        if (error.name === 'NotAllowedError') {
-          console.info('🔇 Audio autoplay blocked by browser policy (using silent notification)');
-          this.createSilentNotification(type);
-        } else {
-          console.info('🔇 Audio playback failed, using silent notification:', error.message);
-          this.createSilentNotification(type);
-        }
-      });
-    } catch (error) {
-      console.info('🔇 Audio system unavailable, using silent notification:', error.message);
-      this.createSilentNotification(type);
-    }
+    // Use Web Audio API generated tones instead of loading audio files
+    this.createSilentNotification(type);
   }
 
   // Create a silent notification using Web Audio API

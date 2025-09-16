@@ -290,41 +290,82 @@ class ContextAPI {
       return null;
     }
 
-    // WebSocket connection for real-time updates
-    const ws = new WebSocket(`${wsUrl}?teamId=${this.teamId}&userId=${this.userId}`);
+    // Initialize retry state if not exists
+    if (!this.wsRetryState) {
+      this.wsRetryState = {
+        retryCount: 0,
+        maxRetries: 5,
+        baseDelay: 1000,
+        maxDelay: 30000
+      };
+    }
 
-    ws.onopen = () => {
-      console.log('🔗 Real-time sync connected');
-      callbacks.onConnect?.();
-    };
+    // Don't retry if we've exceeded max attempts
+    if (this.wsRetryState.retryCount >= this.wsRetryState.maxRetries) {
+      console.log('🔌 WebSocket max retries exceeded - real-time sync disabled');
+      return null;
+    }
 
-    ws.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        this.handleRealtimeMessage(message, callbacks);
-      } catch (error) {
-        console.error('WebSocket message error:', error);
-      }
-    };
+    try {
+      // WebSocket connection for real-time updates
+      const ws = new WebSocket(`${wsUrl}?teamId=${this.teamId}&userId=${this.userId}`);
 
-    ws.onclose = () => {
-      console.log('🔌 Real-time sync disconnected');
-      callbacks.onDisconnect?.();
-      
-      // Only attempt to reconnect if WebSocket URL is still configured
-      if (import.meta.env.VITE_WS_URL) {
-        setTimeout(() => {
-          this.setupRealtimeSync(callbacks);
-        }, 5000);
-      }
-    };
+      ws.onopen = () => {
+        console.log('🔗 Real-time sync connected');
+        // Reset retry state on successful connection
+        this.wsRetryState.retryCount = 0;
+        callbacks.onConnect?.();
+      };
 
-    ws.onerror = (error) => {
-      console.warn('WebSocket connection error:', error);
-      // Don't show errors if URL is not configured
-    };
+      ws.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          this.handleRealtimeMessage(message, callbacks);
+        } catch (error) {
+          console.error('WebSocket message error:', error);
+        }
+      };
 
-    return ws;
+      ws.onclose = (event) => {
+        console.log('🔌 Real-time sync disconnected');
+        callbacks.onDisconnect?.();
+        
+        // Only attempt to reconnect if not intentionally closed and retries available
+        if (event.code !== 1000 && this.wsRetryState.retryCount < this.wsRetryState.maxRetries) {
+          this.wsRetryState.retryCount++;
+          const delay = Math.min(
+            this.wsRetryState.baseDelay * Math.pow(2, this.wsRetryState.retryCount - 1),
+            this.wsRetryState.maxDelay
+          );
+          
+          console.log(`🔄 Retrying WebSocket connection in ${delay}ms (attempt ${this.wsRetryState.retryCount}/${this.wsRetryState.maxRetries})`);
+          
+          setTimeout(() => {
+            this.setupRealtimeSync(callbacks);
+          }, delay);
+        } else if (this.wsRetryState.retryCount >= this.wsRetryState.maxRetries) {
+          console.log('🚫 WebSocket connection failed - max retries exceeded');
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.warn('WebSocket connection error:', error);
+        // Error details are usually limited in browsers for security
+      };
+
+      return ws;
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+      return null;
+    }
+  }
+
+  // Reset WebSocket retry state (useful for manual reconnection attempts)
+  resetWebSocketRetries() {
+    if (this.wsRetryState) {
+      this.wsRetryState.retryCount = 0;
+      console.log('🔄 WebSocket retry state reset');
+    }
   }
 
   handleRealtimeMessage(message, callbacks) {
