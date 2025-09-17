@@ -111,16 +111,29 @@ class TelephonyAPI {
     
     let state = this.demoCallStates.get(callSid);
     if (!state) {
-      state = { status: 'ringing', startTime: Date.now() };
+      state = { 
+        status: 'ringing', 
+        startTime: Date.now(),
+        // Simulate random call outcomes for testing disconnect scenarios
+        outcome: Math.random() < 0.3 ? 'hangup' : (Math.random() < 0.5 ? 'completed' : 'in-progress')
+      };
       this.demoCallStates.set(callSid, state);
     }
     
     const elapsed = Date.now() - state.startTime;
     
-    // Simulate call progression
-    if (elapsed > 8000) { // After 8 seconds, call connects
+    // Simulate call progression with disconnect scenarios
+    if (elapsed > 20000 && state.outcome === 'hangup') {
+      // Simulate client hanging up after 20 seconds
+      state.status = 'disconnected';
+    } else if (elapsed > 15000 && state.outcome === 'completed') {
+      // Simulate normal call completion after 15 seconds
+      state.status = 'completed';
+    } else if (elapsed > 8000) {
+      // After 8 seconds, call connects (if not ending earlier)
       state.status = 'in-progress';
-    } else if (elapsed > 3000) { // After 3 seconds, still ringing
+    } else if (elapsed > 3000) {
+      // After 3 seconds, still ringing
       state.status = 'ringing';
     }
     
@@ -199,6 +212,18 @@ class TelephonyAPI {
       
       const voicesData = await voicesResponse.json();
       
+      // Check if voicesData has the expected structure
+      if (!voicesData || !voicesData.voices || !Array.isArray(voicesData.voices)) {
+        console.error('❌ Invalid voices data structure:', voicesData);
+        return {
+          voices: [],
+          tier: tier,
+          provider: provider,
+          pricing: tierConfig.price_per_minute,
+          error: 'Invalid voices data received from API'
+        };
+      }
+      
       // Format the response to match the expected structure
       return {
         voices: voicesData.voices.map(voice => ({
@@ -215,7 +240,15 @@ class TelephonyAPI {
       };
     } catch (error) {
       console.error('❌ Get voices error:', error);
-      throw error;
+      
+      // Return a safe structure instead of throwing
+      return {
+        voices: [],
+        tier: tier,
+        provider: 'unknown',
+        pricing: 0.08,
+        error: `Failed to load voices: ${error.message}`
+      };
     }
   }
 
@@ -301,32 +334,57 @@ class TelephonyAPI {
 
   // End call with fallback strategy
   async endCall(callSid) {
+    console.log('📞 Attempting to end call:', callSid);
+    
     try {
       // Try the telephony adapter first
+      console.log('🔄 Trying primary telephony adapter endpoint...');
       const response = await fetch(`${this.telephonyAdapter}/api/calls/${callSid}/end`, {
         method: 'POST',
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+        timeout: 5000 // 5 second timeout
       });
       
       if (response.ok) {
-        return await response.json();
+        const result = await response.json();
+        console.log('✅ Primary endpoint succeeded:', result);
+        return result;
       }
       
-      // If telephony adapter fails, try alternative endpoints
-      console.warn('Primary end call endpoint failed, trying alternatives...');
+      console.warn(`⚠️ Primary endpoint failed with status ${response.status}`);
       
-      // Try call transfer service (might have end call capability)
+      // If telephony adapter fails, try alternative endpoints
+      console.log('🔄 Trying alternative API gateway endpoint...');
+      
       const transferResponse = await fetch(`${this.apiGateway}/api/calls/${callSid}/end`, {
         method: 'POST',
-        headers: this.getAuthHeaders()
+        headers: this.getAuthHeaders(),
+        timeout: 5000
       });
       
       if (transferResponse.ok) {
-        return await transferResponse.json();
+        const result = await transferResponse.json();
+        console.log('✅ Alternative endpoint succeeded:', result);
+        return result;
+      }
+      
+      console.warn(`⚠️ Alternative endpoint failed with status ${transferResponse.status}`);
+      
+      // Try a generic DELETE endpoint as last resort
+      console.log('🔄 Trying DELETE endpoint as last resort...');
+      const deleteResponse = await fetch(`${this.telephonyAdapter}/api/calls/${callSid}`, {
+        method: 'DELETE',
+        headers: this.getAuthHeaders(),
+        timeout: 3000
+      });
+      
+      if (deleteResponse.ok) {
+        console.log('✅ DELETE endpoint succeeded');
+        return { success: true, message: 'Call ended via DELETE', call_sid: callSid };
       }
       
       // If all API endpoints fail, handle gracefully with client-side termination
-      console.warn('All end call APIs unavailable, using client-side termination');
+      console.warn('⚠️ All end call APIs failed, using client-side termination');
       return this.clientSideEndCall(callSid);
       
     } catch (error) {
@@ -339,15 +397,27 @@ class TelephonyAPI {
   clientSideEndCall(callSid) {
     console.log('🔧 Performing client-side call termination for:', callSid);
     
+    // Clean up demo call states if it's a demo call
+    if (callSid.startsWith('demo_call_') && this.demoCallStates) {
+      const state = this.demoCallStates.get(callSid);
+      if (state) {
+        state.status = 'completed';
+        state.endTime = Date.now();
+        console.log('🎭 Demo call state updated to completed');
+      }
+    }
+    
     // Disconnect any WebSocket connections for this call
     this.disconnectASR(callSid);
     
     // Return success response format for consistency
     return Promise.resolve({
       success: true,
-      message: 'Call terminated client-side',
+      message: 'Call terminated client-side (offline mode)',
       call_sid: callSid,
-      status: 'completed'
+      status: 'completed',
+      end_time: new Date().toISOString(),
+      client_side: true
     });
   }
 }
@@ -632,13 +702,22 @@ const CallCenterPage = () => {
   const loadVoices = async () => {
     try {
       setIsLoading(true);
-      const voices = await telephonyAPI.getVoices(voiceTier);
-      setAvailableVoices(voices.voices || []);
-      if (voices.voices && voices.voices.length > 0 && !selectedVoice) {
-        setSelectedVoice(voices.voices[0].id);
+      const voicesResult = await telephonyAPI.getVoices(voiceTier);
+      
+      // Check if there was an error in the voices result
+      if (voicesResult.error) {
+        setError(voicesResult.error);
+        setAvailableVoices([]);
+        return;
+      }
+      
+      setAvailableVoices(voicesResult.voices || []);
+      if (voicesResult.voices && voicesResult.voices.length > 0 && !selectedVoice) {
+        setSelectedVoice(voicesResult.voices[0].id);
       }
     } catch (error) {
       setError(`Failed to load voices: ${error.message}`);
+      setAvailableVoices([]);
     } finally {
       setIsLoading(false);
     }
@@ -714,55 +793,67 @@ const CallCenterPage = () => {
 
   // End call with improved error handling
   const handleEndCall = async () => {
-    if (!currentCall?.call_sid) return;
+    if (!currentCall?.call_sid) {
+      console.warn('⚠️ No active call to end');
+      return;
+    }
+
+    console.log('🔄 Initiating call termination for:', currentCall.call_sid);
 
     try {
       setIsLoading(true);
+      
+      // Store call SID before state changes
+      const callSidToEnd = currentCall.call_sid;
       
       // Stop polling immediately to prevent state conflicts
       if (pollingRef.current) {
         clearTimeout(pollingRef.current);
         pollingRef.current = null;
+        console.log('🛑 Stopped status polling');
       }
       
       // Stop call timeout
       if (callTimeoutRef.current) {
         clearTimeout(callTimeoutRef.current);
         callTimeoutRef.current = null;
+        console.log('🛑 Cleared call timeout');
       }
       
-      // Play end call tone
+      // Play end call tone immediately for user feedback
       stopAllAudioTones();
       playAudioTone('endTone');
       
-      // Always reset UI states immediately for better user experience
-      const callSidToEnd = currentCall.call_sid;
+      // Cleanup microphone and ASR immediately
+      if (microphoneStream) {
+        microphoneStream.getTracks().forEach(track => track.stop());
+        setMicrophoneStream(null);
+        console.log('🎤 Microphone stream stopped');
+      }
+      telephonyAPI.disconnectASR(callSidToEnd);
       
-      // Reset states immediately for responsive UI
+      // Reset UI states immediately for responsive user experience
       setCurrentCall(null);
       setCallStatus('idle');
       setIsRecording(false);
       callStartTimeRef.current = null;
       setTranscript([]);
-      setError(null);
       
-      // Cleanup microphone and ASR
-      if (microphoneStream) {
-        microphoneStream.getTracks().forEach(track => track.stop());
-        setMicrophoneStream(null);
-      }
-      telephonyAPI.disconnectASR(callSidToEnd);
+      console.log('✅ UI states reset immediately');
       
       // Try to end the call via API (this may fail, but UI is already updated)
       try {
-        await telephonyAPI.endCall(callSidToEnd);
-        console.log('✅ Call ended successfully via API');
+        console.log('📞 Attempting to end call via API...');
+        const result = await telephonyAPI.endCall(callSidToEnd);
+        console.log('✅ Call ended successfully via API:', result);
+        setError(null);
       } catch (apiError) {
         console.warn('⚠️ API call end failed, but call terminated client-side:', apiError.message);
         // Don't show error to user since call is already terminated from UI perspective
+        // Set a subtle status message instead of an error
+        setError('Call ended (offline mode)');
+        setTimeout(() => setError(null), 3000); // Clear after 3 seconds
       }
-      
-      console.log('✅ Call ended successfully and states reset');
       
     } catch (error) {
       console.error('❌ Error during call termination:', error);
@@ -773,15 +864,14 @@ const CallCenterPage = () => {
       setIsRecording(false);
       callStartTimeRef.current = null;
       setTranscript([]);
-      stopAllAudioTones();
       
-      // Only show error if it's not an API availability issue
-      if (!error.message.includes('404') && !error.message.includes('End call failed')) {
-        setError(`Call termination error: ${error.message}`);
-      }
+      // Show error to user
+      setError(`Call termination error: ${error.message}`);
+      setTimeout(() => setError(null), 5000);
       
     } finally {
       setIsLoading(false);
+      console.log('🏁 Call termination process completed');
     }
   };
 
@@ -850,8 +940,11 @@ const CallCenterPage = () => {
             }
             
           } else if (newStatus === 'completed' || newStatus === 'failed' || 
-                     newStatus === 'busy' || newStatus === 'no-answer') {
+                     newStatus === 'busy' || newStatus === 'no-answer' ||
+                     newStatus === 'canceled' || newStatus === 'disconnected' ||
+                     newStatus === 'hangup' || newStatus === 'terminated') {
             // Call ended - stop all tones, play end tone, reset states
+            console.log(`📞 Call automatically ended with status: ${newStatus}`);
             stopAllAudioTones();
             playAudioTone('endTone');
             
@@ -862,10 +955,30 @@ const CallCenterPage = () => {
             }
             telephonyAPI.disconnectASR(callSid);
             
+            // Clear any timeouts
+            if (callTimeoutRef.current) {
+              clearTimeout(callTimeoutRef.current);
+              callTimeoutRef.current = null;
+            }
+            
             setCurrentCall(null);
             setCallStatus('idle');
             setIsRecording(false);
             callStartTimeRef.current = null;
+            setTranscript([]);
+            
+            // Set appropriate status message
+            if (newStatus === 'busy') {
+              setError('Line is busy');
+            } else if (newStatus === 'no-answer') {
+              setError('No answer');
+            } else if (newStatus === 'failed') {
+              setError('Call failed');
+            } else if (newStatus === 'disconnected' || newStatus === 'hangup') {
+              setError('Call disconnected by client');
+            } else {
+              setError(null); // Call completed normally
+            }
             
             console.log(`✅ Call ended with status: ${newStatus}`);
             return; // Stop polling
