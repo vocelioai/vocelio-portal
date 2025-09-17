@@ -30,7 +30,7 @@ export const ENV_CONFIG = {
     OMNICHANNEL_API_URL: 'https://omnichannel-hub-313373223340.us-central1.run.app',
     OMNICHANNEL_WS_URL: 'wss://omnichannel-hub-313373223340.us-central1.run.app/ws',
     ADVANCED_ANALYTICS_API_URL: 'https://advanced-analytics-313373223340.us-central1.run.app',
-    API_GATEWAY_URL: 'https://api-gateway-313373223340.us-central1.run.app',
+    API_GATEWAY_URL: 'https://api.vocelio.ai',
     APP_ENV: 'development',
     ENABLE_ANALYTICS: true,
     ENABLE_ERROR_REPORTING: false, // Keep disabled in dev
@@ -178,7 +178,7 @@ export const INTEGRATION_ENDPOINTS = {
   
   // API Gateway
   gateway: {
-    base: 'https://api-gateway-313373223340.us-central1.run.app',
+    base: 'https://api.vocelio.ai',
     auth: '/auth',
     users: '/users',
     organizations: '/organizations',

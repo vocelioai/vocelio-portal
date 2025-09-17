@@ -1,5 +1,5 @@
 // Enhanced API configuration for production microservices architecture
-const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || 'https://api-gateway-313373223340.us-central1.run.app';
+const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || 'https://api.vocelio.ai';
 const AUTH_SERVICE_URL = import.meta.env.REACT_APP_AUTH_SERVICE_URL || 'https://auth-service-313373223340.us-central1.run.app';
 const CALL_TRANSFER_API_URL = import.meta.env.VITE_CALL_TRANSFER_URL || 'https://call-transfer-313373223340.us-central1.run.app';
 const CRM_INTEGRATION_URL = import.meta.env.VITE_CRM_INTEGRATION_URL || 'https://crm-integration-313373223340.us-central1.run.app';

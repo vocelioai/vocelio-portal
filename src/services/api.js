@@ -7,7 +7,7 @@ const config = getCurrentConfig();
 // Service URLs Configuration
 const SERVICE_URLS = {
   // Core Services - Use environment config for development
-  API_GATEWAY: config.API_GATEWAY_URL || import.meta.env.VITE_API_GATEWAY_URL || 'https://api-gateway-313373223340.us-central1.run.app',
+  API_GATEWAY: config.API_GATEWAY_URL || import.meta.env.VITE_API_GATEWAY_URL || 'https://api.vocelio.ai',
   OMNICHANNEL_HUB: config.OMNICHANNEL_API_URL || import.meta.env.VITE_OMNICHANNEL_HUB_URL || 'https://omnichannel-hub-313373223340.us-central1.run.app',
   ADMIN_DASHBOARD: import.meta.env.VITE_ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_ADMIN_DASHBOARD_URL,
   
