@@ -4,6 +4,9 @@ import { SettingsProvider } from '../../contexts/SettingsContext';
 import { SettingsLayout } from './SettingsLayout';
 import { UserProfileSettings } from './components/UserProfile/UserProfileSettings';
 import { VoicePreferencesSettings } from './components/VoicePreferences/VoicePreferencesSettings';
+import SupportSettingsComponent from './components/Support/SupportSettings';
+import OrganizationSettingsComponent from './components/Organization/OrganizationSettings';
+import BillingSettingsComponent from './components/Billing/BillingSettings';
 // Import other settings components as they're created
 // import { OrganizationSettings } from './components/Organization/OrganizationSettings';
 // import { SupportSettings } from './components/Support/SupportSettings';
@@ -30,26 +33,11 @@ const ComingSoonPlaceholder: React.FC<{ title: string; description: string }> = 
   </div>
 );
 
-const OrganizationSettings = () => (
-  <ComingSoonPlaceholder
-    title="Organization Management"
-    description="Team management, subscription settings, and organization-wide preferences will be available soon."
-  />
-);
+const OrganizationSettings = () => <OrganizationSettingsComponent />;
 
-const SupportSettings = () => (
-  <ComingSoonPlaceholder
-    title="Support & Help"
-    description="Support tickets, help center, and knowledge base integration coming soon."
-  />
-);
+const SupportSettings = () => <SupportSettingsComponent />;
 
-const BillingSettings = () => (
-  <ComingSoonPlaceholder
-    title="Billing & Payments"
-    description="Stripe integration, invoice management, and usage tracking will be available soon."
-  />
-);
+const BillingSettings = () => <BillingSettingsComponent />;
 
 const CalendarSettings = () => (
   <ComingSoonPlaceholder

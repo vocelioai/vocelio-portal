@@ -142,17 +142,14 @@ export const WebSocketProvider = ({ children }) => {
   const [state, dispatch] = useReducer(webSocketReducer, initialState);
   const reconnectTimeouts = useRef(new Map());
 
-  // Base WebSocket URL
+  // Base WebSocket URL - Use production WebSocket service
   const getWebSocketURL = useCallback((endpoint, sessionId) => {
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'wss://omnichannel-hub-313373223340.us-central1.run.app'
-      : 'ws://localhost:3001';
+    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://websocket-service-313373223340.us-central1.run.app';
     
     if (sessionId) {
-      return `${baseUrl}/ws/${endpoint}/${sessionId}`;
+      return `${wsUrl}/ws/${endpoint}/${sessionId}`;
     }
-    return `${baseUrl}/ws/${endpoint}`;
+    return `${wsUrl}/ws/${endpoint}`;
   }, []);
 
   // Create WebSocket connection

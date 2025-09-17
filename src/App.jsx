@@ -20,10 +20,6 @@ import PerformanceMonitor from './components/PerformanceMonitor.jsx';
 // ===== COPILOT PROMPT #4: WebSocket Integration =====
 import { WebSocketProvider } from './providers/WebSocketProvider.jsx';
 
-// ===== COPILOT PROMPT #8: Development Mock API =====
-import './services/mockAPI.js';
-import './utils/devHealthCheck.js';
-
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {

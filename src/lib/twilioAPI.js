@@ -1,5 +1,6 @@
 // Twilio API Integration Library for Vocilio Portal
 import axios from 'axios';
+import { API_KEYS } from '../config/api.js';
 
 class TwilioAPI {
   constructor() {
@@ -7,8 +8,16 @@ class TwilioAPI {
     this.baseURL = import.meta.env.VITE_PHONE_NUMBER_SERVICE_URL || 
                    'https://phone-number-service-mqe4lv42za-uc.a.run.app';
     
-    console.log('🔧 Twilio API Configuration (direct to phone service):', {
-      baseURL: this.baseURL
+    // Production Twilio credentials
+    this.accountSid = API_KEYS.TWILIO_ACCOUNT_SID;
+    this.authToken = API_KEYS.TWILIO_AUTH_TOKEN;
+    this.phoneNumber = import.meta.env.VITE_TWILIO_PHONE_NUMBER;
+    
+    console.log('🔧 Twilio API Configuration (Production):', {
+      baseURL: this.baseURL,
+      accountSid: this.accountSid ? `${this.accountSid.substring(0, 8)}...` : 'Missing',
+      phoneNumber: this.phoneNumber,
+      hasAuthToken: !!this.authToken
     });
     
     // Create axios instance for direct connection to your phone service
@@ -16,7 +25,10 @@ class TwilioAPI {
       baseURL: this.baseURL,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        // Add Twilio authentication headers for backend
+        'X-Twilio-Account-SID': this.accountSid,
+        'X-Twilio-Auth-Token': this.authToken
       }
     });
 

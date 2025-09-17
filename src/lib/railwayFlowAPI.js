@@ -282,12 +282,7 @@ class MockRailwayFlowAPI {
   }
 }
 
-// Export the appropriate implementation
-const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.RAILWAY_API_KEY;
-
-export const railwayFlowAPI = isDevelopment 
-  ? new MockRailwayFlowAPI()
-  : new RailwayFlowAPI();
-
-export { RailwayFlowAPI, MockRailwayFlowAPI };
+// Export only the production implementation
+export const railwayFlowAPI = new RailwayFlowAPI();
+export { RailwayFlowAPI };
 export default railwayFlowAPI;

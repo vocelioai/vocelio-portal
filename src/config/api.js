@@ -1,9 +1,40 @@
-// Enhanced API configuration for wallet system and call transfer integration
-const API_BASE_URL = 'https://auth-service-313373223340.us-central1.run.app';
-const CALL_TRANSFER_API_URL = 'https://call-transfer-service-313373223340.us-central1.run.app';
-const CAMPAIGN_MANAGEMENT_API_URL = 'https://campaign-management-313373223340.us-central1.run.app';
+// Enhanced API configuration for production microservices architecture
+const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL || 'https://api-gateway-313373223340.us-central1.run.app';
+const AUTH_SERVICE_URL = import.meta.env.REACT_APP_AUTH_SERVICE_URL || 'https://auth-service-313373223340.us-central1.run.app';
+const CALL_TRANSFER_API_URL = import.meta.env.VITE_CALL_TRANSFER_URL || 'https://call-transfer-313373223340.us-central1.run.app';
+const CRM_INTEGRATION_URL = import.meta.env.VITE_CRM_INTEGRATION_URL || 'https://crm-integration-313373223340.us-central1.run.app';
+const BILLING_SERVICE_URL = import.meta.env.VITE_BILLING_SERVICE_URL || 'https://billing-service-313373223340.us-central1.run.app';
+const ANALYTICS_SERVICE_URL = import.meta.env.VITE_ANALYTICS_SERVICE_URL || 'https://analytics-service-313373223340.us-central1.run.app';
+const OMNICHANNEL_HUB_URL = import.meta.env.VITE_OMNICHANNEL_HUB_URL || 'https://omnichannel-hub-313373223340.us-central1.run.app';
 
-// Enhanced API call function supporting multiple base URLs
+// API Keys Configuration
+export const API_KEYS = {
+  STRIPE_PUBLISHABLE: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+  OPENAI: import.meta.env.VITE_OPENAI_API_KEY,
+  ANTHROPIC: import.meta.env.VITE_ANTHROPIC_API_KEY,
+  ELEVENLABS: import.meta.env.VITE_ELEVENLABS_API_KEY,
+  DEEPGRAM: import.meta.env.VITE_DEEPGRAM_API_KEY,
+  AZURE_SPEECH: import.meta.env.VITE_AZURE_SPEECH_KEY,
+  TWILIO_ACCOUNT_SID: import.meta.env.VITE_TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: import.meta.env.VITE_TWILIO_AUTH_TOKEN,
+  GCP_PROJECT_ID: import.meta.env.VITE_GCP_PROJECT_ID,
+};
+
+// Validate critical API keys
+export const validateAPIKeys = () => {
+  const missing = [];
+  if (!API_KEYS.STRIPE_PUBLISHABLE) missing.push('VITE_STRIPE_PUBLISHABLE_KEY');
+  if (!API_KEYS.TWILIO_ACCOUNT_SID) missing.push('VITE_TWILIO_ACCOUNT_SID');
+  if (!API_KEYS.ELEVENLABS) missing.push('VITE_ELEVENLABS_API_KEY');
+  
+  if (missing.length > 0) {
+    console.warn('⚠️ Missing critical API keys:', missing);
+    return false;
+  }
+  return true;
+};
+
+// Enhanced API call function supporting multiple microservices
 export const apiCall = async (endpoint, options = {}, baseUrl = API_BASE_URL) => {
   const token = localStorage.getItem('access_token');
   
@@ -11,6 +42,8 @@ export const apiCall = async (endpoint, options = {}, baseUrl = API_BASE_URL) =>
     headers: {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` }),
+      // Add tenant isolation header if available
+      ...(localStorage.getItem('tenant_id') && { 'X-Tenant-ID': localStorage.getItem('tenant_id') }),
       ...options.headers,
     },
   };
@@ -63,13 +96,20 @@ export const walletAPI = {
   getFreeMinutes: () => apiCall('/usage/free-minutes'),
 };
 
-// Stripe payment API functions
+// Stripe payment API functions with production keys
 export const stripeAPI = {
+  // Get Stripe publishable key
+  getPublishableKey: () => API_KEYS.STRIPE_PUBLISHABLE,
+  
   // Create payment intent
   createPaymentIntent: (amount, currency = 'usd') =>
     apiCall('/stripe/create-payment-intent', {
       method: 'POST',
-      body: JSON.stringify({ amount: amount * 100, currency }) // Convert to cents
+      body: JSON.stringify({ 
+        amount: amount * 100, // Convert to cents
+        currency,
+        payment_method_types: ['card']
+      })
     }),
   
   // Confirm payment completion
@@ -362,4 +402,12 @@ export const campaignAPI = {
   })
 };
 
-export { API_BASE_URL };
+export { 
+  API_BASE_URL, 
+  AUTH_SERVICE_URL, 
+  CALL_TRANSFER_API_URL, 
+  CRM_INTEGRATION_URL, 
+  BILLING_SERVICE_URL, 
+  ANALYTICS_SERVICE_URL, 
+  OMNICHANNEL_HUB_URL 
+};

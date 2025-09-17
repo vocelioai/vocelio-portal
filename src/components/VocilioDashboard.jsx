@@ -41,6 +41,9 @@ import serviceManager, {
   getServiceHealth
 } from '../services/index';
 
+// Import analytics dashboard
+import CampaignAnalyticsDashboard from './analytics/CampaignAnalyticsDashboard.jsx';
+
 // Import enhanced phone number purchase component
 import PhoneNumberPurchasePage from './PhoneNumberPurchasePage';
 
@@ -72,6 +75,13 @@ import OmnichannelDashboard from './omnichannel/OmnichannelDashboard.jsx';
 
 // Import WebRTC Video Call Component
 import WebRTCVideoCall from './webrtc/WebRTCVideoCall.jsx';
+
+// Import LiveChat and Settings Components
+import LiveChatSystem from './support/LiveChatSystem.jsx';
+import BillingSettings from '../pages/Settings/components/Billing/BillingSettings.jsx';
+import APIManagementSettings from '../pages/Settings/components/API/APIManagementSettings.jsx';
+import NotificationSettings from '../pages/Settings/components/Notifications/NotificationSettings.jsx';
+import CalendarIntegrationSettings from '../pages/Settings/components/Calendar/CalendarIntegrationSettings.jsx';
 
 // Enhanced Utility Components with AI Integration
 const EnhancedStatCard = ({ title, value, icon: Icon, color, prediction, trend }) => {
@@ -1495,19 +1505,7 @@ const VocilioDashboard = ({ onLogout, user }) => {
           </div>
         );
       case 'campaign-analytics':
-        return (
-          <div className="p-6">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Campaign Analytics</h2>
-              <p className="text-gray-600">Advanced analytics and insights for your marketing campaigns</p>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-              <Target className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Campaign Analytics</h3>
-              <p className="text-gray-600">Detailed campaign analytics dashboard coming soon</p>
-            </div>
-          </div>
-        );
+        return <CampaignAnalyticsDashboard />;
       
       // WebRTC Video Calls Section
       case 'webrtc':
@@ -1605,11 +1603,479 @@ const VocilioDashboard = ({ onLogout, user }) => {
         return <BillingSection />;
       case 'settings':
       case 'account-settings':
-        return <SettingsSection user={user} />;
+        return (
+          <div className="p-6 space-y-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Settings</h2>
+              <p className="text-gray-600">Manage your account, billing, integrations, and preferences</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Billing Settings */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all cursor-pointer" onClick={() => setActiveSection('billing-settings')}>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Billing Settings</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Manage subscriptions, payment methods, and billing history</p>
+                <div className="flex items-center text-sm text-blue-600">
+                  <span>Configure billing</span>
+                  <ExternalLink className="w-4 h-4 ml-1" />
+                </div>
+              </div>
+
+              {/* API Management */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all cursor-pointer" onClick={() => setActiveSection('api-management')}>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <Settings className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">API Management</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Manage API keys, webhooks, and developer tools</p>
+                <div className="flex items-center text-sm text-blue-600">
+                  <span>Manage APIs</span>
+                  <ExternalLink className="w-4 h-4 ml-1" />
+                </div>
+              </div>
+
+              {/* Notifications */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all cursor-pointer" onClick={() => setActiveSection('notification-settings')}>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Configure email, SMS, and in-app notification preferences</p>
+                <div className="flex items-center text-sm text-blue-600">
+                  <span>Setup notifications</span>
+                  <ExternalLink className="w-4 h-4 ml-1" />
+                </div>
+              </div>
+
+              {/* Calendar Integration */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all cursor-pointer" onClick={() => setActiveSection('calendar-integration')}>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Calendar Integration</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Connect with Google Calendar, Outlook, and other calendar systems</p>
+                <div className="flex items-center text-sm text-blue-600">
+                  <span>Connect calendars</span>
+                  <ExternalLink className="w-4 h-4 ml-1" />
+                </div>
+              </div>
+
+              {/* Tool Integrations */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all cursor-pointer" onClick={() => setActiveSection('tool-integrations')}>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <Zap className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Tool Integrations</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Connect with CRM, helpdesk, and other business tools</p>
+                <div className="flex items-center text-sm text-blue-600">
+                  <span>Manage integrations</span>
+                  <ExternalLink className="w-4 h-4 ml-1" />
+                </div>
+              </div>
+
+              {/* Account Settings */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <User className="w-5 h-5 text-gray-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Account Settings</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Update profile information, security settings, and preferences</p>
+                <div className="space-y-2">
+                  <div className="text-sm text-gray-500">
+                    <p>• Profile & Organization</p>
+                    <p>• Security & Privacy</p>
+                    <p>• Team Management</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Settings */}
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-6 border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Settings</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-4 border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">Email Notifications</span>
+                    <button className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs">ON</button>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">API Access</span>
+                    <button className="bg-green-600 text-white px-3 py-1 rounded-full text-xs">ACTIVE</button>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-4 border">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">Auto-Billing</span>
+                    <button className="bg-orange-600 text-white px-3 py-1 rounded-full text-xs">ENABLED</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       case 'tool-integrations':
         return <ToolIntegrationSettings />;
       case 'system-health':
         return <SystemHealthSection systemHealth={systemHealth} />;
+      
+      // 💬 Support & Help Center Sections
+      case 'support':
+      case 'help-center':
+        return (
+          <div className="p-6 space-y-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Help Center</h2>
+              <p className="text-gray-600">Find answers, get support, and learn how to use Vocelio AI</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Quick Actions */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Live Chat Support</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Get instant help from our support team</p>
+                <button
+                  onClick={() => setActiveSection('live-chat')}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Start Live Chat
+                </button>
+              </div>
+
+              {/* Documentation */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Documentation</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Browse our comprehensive guides and tutorials</p>
+                <button
+                  onClick={() => setActiveSection('documentation')}
+                  className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  View Documentation
+                </button>
+              </div>
+
+              {/* System Status */}
+              <div className="bg-white rounded-lg border p-6 hover:shadow-sm transition-all">
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <Activity className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">System Status</h3>
+                </div>
+                <p className="text-gray-600 mb-4">Check real-time system health and uptime</p>
+                <button
+                  onClick={() => setActiveSection('system-status')}
+                  className="w-full bg-emerald-600 text-white py-2 px-4 rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  View Status
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Help */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Help</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-900">Getting Started</h4>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p>• Set up your first campaign</p>
+                    <p>• Configure your phone numbers</p>
+                    <p>• Upload your contact lists</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium text-gray-900">Troubleshooting</h4>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p>• Call quality issues</p>
+                    <p>• Billing and payment help</p>
+                    <p>• API integration support</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      
+      case 'live-chat':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <button
+                onClick={() => setActiveSection('help-center')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Help Center
+              </button>
+            </div>
+            <LiveChatSystem />
+          </div>
+        );
+      
+      case 'documentation':
+        return (
+          <div className="p-6 space-y-6">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <button
+                  onClick={() => setActiveSection('help-center')}
+                  className="text-blue-600 hover:text-blue-700 font-medium mb-2 block"
+                >
+                  ← Back to Help Center
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">Documentation</h2>
+                <p className="text-gray-600">Comprehensive guides to help you make the most of Vocelio AI</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Sidebar Navigation */}
+              <div className="lg:col-span-1">
+                <div className="bg-white rounded-lg border p-4 sticky top-6">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Categories</h3>
+                  <nav className="space-y-1">
+                    {[
+                      'Getting Started',
+                      'Campaign Management',
+                      'Call Center Setup',
+                      'Contact Management',
+                      'Analytics & Reporting',
+                      'API Documentation',
+                      'Billing & Payments',
+                      'Troubleshooting'
+                    ].map((category) => (
+                      <a
+                        key={category}
+                        href="#"
+                        className="block px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                      >
+                        {category}
+                      </a>
+                    ))}
+                  </nav>
+                </div>
+              </div>
+
+              {/* Main Content */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* Popular Articles */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Articles</h3>
+                  <div className="space-y-4">
+                    {[
+                      {
+                        title: 'Setting up your first voice campaign',
+                        description: 'Learn how to create and launch your first AI-powered voice campaign',
+                        readTime: '5 min read'
+                      },
+                      {
+                        title: 'Configuring call center operations',
+                        description: 'Complete guide to setting up live call management and routing',
+                        readTime: '8 min read'
+                      },
+                      {
+                        title: 'Understanding analytics and reporting',
+                        description: 'Make data-driven decisions with comprehensive campaign analytics',
+                        readTime: '6 min read'
+                      },
+                      {
+                        title: 'API integration best practices',
+                        description: 'Integrate Vocelio AI with your existing systems and workflows',
+                        readTime: '10 min read'
+                      }
+                    ].map((article, index) => (
+                      <div key={index} className="flex items-start space-x-3 p-4 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer">
+                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{article.title}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{article.description}</p>
+                          <span className="text-xs text-gray-500 mt-2 inline-block">{article.readTime}</span>
+                        </div>
+                        <ExternalLink className="w-4 h-4 text-gray-400" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Video Tutorials */}
+                <div className="bg-white rounded-lg border p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Video Tutorials</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      'Platform Overview (10:15)',
+                      'Campaign Setup Guide (8:30)',
+                      'Advanced Features (12:45)',
+                      'Troubleshooting Common Issues (6:20)'
+                    ].map((video, index) => (
+                      <div key={index} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors cursor-pointer">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <Play className="w-6 h-6 text-red-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-gray-900">{video}</h4>
+                            <p className="text-sm text-gray-600">Watch tutorial</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      
+      case 'system-status':
+        return (
+          <div className="p-6 space-y-6">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <button
+                  onClick={() => setActiveSection('help-center')}
+                  className="text-blue-600 hover:text-blue-700 font-medium mb-2 block"
+                >
+                  ← Back to Help Center
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900">System Status</h2>
+                <p className="text-gray-600">Real-time status of all Vocelio AI services</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="text-sm font-medium text-gray-900">All Systems Operational</span>
+              </div>
+            </div>
+
+            {/* Current Status */}
+            <div className="bg-white rounded-lg border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Service Status</h3>
+              <div className="space-y-4">
+                {[
+                  { name: 'Voice API', status: 'operational', uptime: '99.9%' },
+                  { name: 'Call Center', status: 'operational', uptime: '99.8%' },
+                  { name: 'Analytics Dashboard', status: 'operational', uptime: '99.9%' },
+                  { name: 'Campaign Management', status: 'operational', uptime: '99.7%' },
+                  { name: 'WebRTC Services', status: 'operational', uptime: '99.6%' },
+                  { name: 'API Gateway', status: 'operational', uptime: '99.9%' }
+                ].map((service, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${service.status === 'operational' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="font-medium text-gray-900">{service.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <span className="text-sm text-gray-600">Uptime: {service.uptime}</span>
+                      <span className={`text-sm font-medium ${service.status === 'operational' ? 'text-green-600' : 'text-red-600'}`}>
+                        {service.status === 'operational' ? 'Operational' : 'Down'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Incidents */}
+            <div className="bg-white rounded-lg border p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Incidents</h3>
+              <div className="text-center py-8">
+                <CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-4" />
+                <h4 className="text-lg font-medium text-gray-900 mb-2">No Recent Incidents</h4>
+                <p className="text-gray-600">All services have been running smoothly</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      // 💳 Enhanced Billing & Settings Integration
+      case 'billing-settings':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <button
+                onClick={() => setActiveSection('settings')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Settings
+              </button>
+            </div>
+            <BillingSettings />
+          </div>
+        );
+      
+      case 'api-management':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <button
+                onClick={() => setActiveSection('settings')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Settings
+              </button>
+            </div>
+            <APIManagementSettings />
+          </div>
+        );
+      
+      case 'notification-settings':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <button
+                onClick={() => setActiveSection('settings')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Settings
+              </button>
+            </div>
+            <NotificationSettings />
+          </div>
+        );
+      
+      case 'calendar-integration':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <button
+                onClick={() => setActiveSection('settings')}
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                ← Back to Settings
+              </button>
+            </div>
+            <CalendarIntegrationSettings />
+          </div>
+        );
+      
       default:
         return (
           <HomeSection 
