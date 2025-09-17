@@ -66,7 +66,7 @@ const FlowDesignerSidebar = ({
         ))}
       </div>
 
-      {/* Railway Execution Monitor */}
+      {/* Flow Execution Monitor */}
       <div>
         <h3 className="text-xs uppercase tracking-wider text-slate-400 mb-3">Railway Execution</h3>
         <ExecutionMonitor 

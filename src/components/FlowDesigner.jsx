@@ -31,7 +31,6 @@ import PhoneNumberFlowManager from './PhoneNumberFlowManager';
   import { NodeTypeConfig } from '../lib/flowSchemas';
   import { migrateLegacyFlow, autoLayoutNodes, exportFlowToJSON } from '../lib/flowMigration';
   import { nodeTypes } from '../components/FlowNodes';
-  import { railwayFlowAPI } from '../lib/railwayFlowAPI';
   import { vocelioFlowAPI } from '../lib/vocelioFlowAPI';
   import { contextAPI } from '../lib/contextAPI';
   import FLOW_DESIGNER_CONFIG from '../config/flowDesignerConfig';
@@ -185,7 +184,7 @@ You're calling {{customer_name}} because you came across their company and saw t
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [pendingCall, setPendingCall] = useState(null);
 
-  // Railway execution states
+  // Flow execution states
   const [executionMonitorVisible, setExecutionMonitorVisible] = useState(false);
   const [currentExecution, setCurrentExecution] = useState(null);
   const [isExecutionRunning, setIsExecutionRunning] = useState(false);
@@ -413,11 +412,11 @@ You're calling {{customer_name}} because you came across their company and saw t
     }
   }, [nodes, edges, migratedFlow, showNotification]);
 
-  // Railway execution handlers
+  // Flow execution handlers
   const handleExecutionStart = useCallback((execution) => {
     setCurrentExecution(execution);
     setIsExecutionRunning(true);
-    showNotification('Flow execution started on Railway backend', 'success');
+    showNotification('Flow execution started on Vocilio backend', 'success');
   }, [showNotification]);
 
   const handleExecutionEnd = useCallback((execution) => {
@@ -425,16 +424,16 @@ You're calling {{customer_name}} because you came across their company and saw t
     showNotification(`Flow execution ${execution.status}`, execution.status === 'completed' ? 'success' : 'error');
   }, [showNotification]);
 
-  const testRailwayConnection = useCallback(async () => {
+  const testFlowConnection = useCallback(async () => {
     try {
-      const result = await railwayFlowAPI.testConnection();
+      const result = await vocelioFlowAPI.testConnection();
       if (result.success) {
-        showNotification('✅ Railway backend connected successfully!', 'success');
+        showNotification('✅ Flow backend connected successfully!', 'success');
       } else {
-        showNotification('❌ Railway connection failed: ' + result.error, 'error');
+        showNotification('❌ Flow connection failed: ' + result.error, 'error');
       }
     } catch (error) {
-      showNotification('❌ Railway connection error: ' + error.message, 'error');
+      showNotification('❌ Flow connection error: ' + error.message, 'error');
     }
   }, [showNotification]);
 

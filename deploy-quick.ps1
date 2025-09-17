@@ -2,7 +2,7 @@
 # Vocilio Portal - Update Deployment
 
 $PROJECT_ID = "vocilio-dashboard"
-$BUCKET_NAME = "vocilio-portal-static"
+$BUCKET_NAME = "vocelio-portal-v2"
 $EXISTING_IP = "35.227.201.121"
 
 Write-Host "🔄 Quick deployment to existing infrastructure..."

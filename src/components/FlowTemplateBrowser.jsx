@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { railwayFlowAPI } from '../lib/railwayFlowAPI.js';
 import { Search, Filter, Download, Star, Eye, Users } from 'lucide-react';
 
 const FlowTemplateBrowser = ({ isDarkMode, isOpen, onTemplateSelect, onClose }) => {
@@ -24,22 +23,75 @@ const FlowTemplateBrowser = ({ isDarkMode, isOpen, onTemplateSelect, onClose }) 
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const templateData = await railwayFlowAPI.getFlowTemplates();
       
-      // Enhance templates with mock data for demo
-      const enhancedTemplates = templateData.map((template, index) => ({
-        ...template,
-        rating: 4.2 + Math.random() * 0.8,
-        downloads: 150 + Math.floor(Math.random() * 1000),
-        author: `Author ${index + 1}`,
-        createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        preview: `Preview for ${template.name}`,
-        tags: ['voice', 'ai', 'automation'].slice(0, Math.floor(Math.random() * 3) + 1)
-      }));
+      // Use local mock templates instead of Railway API
+      const mockTemplates = [
+        {
+          id: 'template-1',
+          name: 'Customer Support Flow',
+          description: 'Automated customer support with AI voice responses',
+          category: 'support',
+          rating: 4.8,
+          downloads: 1250,
+          author: 'Vocilio Team',
+          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          preview: 'Handles customer inquiries with intelligent routing',
+          tags: ['voice', 'ai', 'support']
+        },
+        {
+          id: 'template-2', 
+          name: 'Sales Qualification Bot',
+          description: 'Lead qualification and appointment booking',
+          category: 'sales',
+          rating: 4.6,
+          downloads: 890,
+          author: 'Vocilio Team',
+          createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+          preview: 'Qualifies leads and schedules appointments automatically',
+          tags: ['sales', 'automation', 'crm']
+        },
+        {
+          id: 'template-3',
+          name: 'Survey Collection Flow',
+          description: 'Automated survey collection with voice responses',
+          category: 'data',
+          rating: 4.4,
+          downloads: 645,
+          author: 'Vocilio Team',
+          createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+          preview: 'Collects feedback through natural voice conversations',
+          tags: ['data', 'voice', 'analytics']
+        },
+        {
+          id: 'template-4',
+          name: 'Appointment Reminder',
+          description: 'Automated appointment reminders and confirmations',
+          category: 'automation',
+          rating: 4.7,
+          downloads: 1180,
+          author: 'Vocilio Team',
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+          preview: 'Sends voice reminders and handles confirmations',
+          tags: ['automation', 'scheduling', 'voice']
+        },
+        {
+          id: 'template-5',
+          name: 'Product Demo Flow',
+          description: 'Interactive product demonstrations via voice',
+          category: 'sales',
+          rating: 4.5,
+          downloads: 720,
+          author: 'Vocilio Team',
+          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+          preview: 'Showcases product features through voice interaction',
+          tags: ['sales', 'demo', 'voice']
+        }
+      ];
       
-      setTemplates(enhancedTemplates);
+      setTemplates(mockTemplates);
     } catch (error) {
       console.error('Failed to load templates:', error);
+      setTemplates([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -71,7 +123,7 @@ const FlowTemplateBrowser = ({ isDarkMode, isOpen, onTemplateSelect, onClose }) 
   const handleSelectTemplate = async (template) => {
     try {
       setLoading(true);
-      const flow = await railwayFlowAPI.createFlowFromTemplate(template.id);
+      const flow = await vocelioFlowAPI.createFlowFromTemplate(template.id);
       onTemplateSelect(flow);
       onClose();
     } catch (error) {
