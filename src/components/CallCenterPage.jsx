@@ -3,11 +3,13 @@ import {
   Phone, PhoneCall, PhoneIncoming, PhoneOff, Mic, MicOff, 
   Volume2, VolumeX, Settings, User, Clock, ArrowRight,
   Play, Pause, Download, Copy, RefreshCw, AlertCircle,
-  CheckCircle, Loader, MessageSquare, FileText, Users
+  CheckCircle, Loader, MessageSquare, FileText, Users,
+  History, X
 } from 'lucide-react';
 import VoiceSelector from './VoiceSelector';
 import TranscriptBox from './TranscriptBox';
 import IncomingCallModal from './IncomingCallModal';
+import { callTransferAPI } from '../config/api.js';
 
 // Telephony API Service Class
 class TelephonyAPI {
@@ -470,6 +472,11 @@ const CallCenterPage = () => {
   // Transcript
   const [transcript, setTranscript] = useState([]);
   const [isRecording, setIsRecording] = useState(false);
+  
+  // Call History
+  const [callHistory, setCallHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [showCallHistory, setShowCallHistory] = useState(false);
 
   // Enable audio context on first user interaction
   const enableAudio = useCallback(async () => {
@@ -720,6 +727,36 @@ const CallCenterPage = () => {
       setAvailableVoices([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Load call history
+  const loadCallHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const params = {
+        limit: 20, // Show last 20 calls
+        page: 1
+      };
+      
+      console.log('📞 Loading call history...');
+      const data = await callTransferAPI.getCallLogs(params);
+      console.log('📞 Call history loaded:', data);
+      
+      setCallHistory(data.call_logs || data || []);
+    } catch (error) {
+      console.error('❌ Failed to load call history:', error);
+      setError(`Failed to load call history: ${error.message}`);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Toggle call history panel
+  const toggleCallHistory = () => {
+    setShowCallHistory(!showCallHistory);
+    if (!showCallHistory && callHistory.length === 0) {
+      loadCallHistory();
     }
   };
 
@@ -1048,9 +1085,24 @@ const CallCenterPage = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Call Center</h1>
-          <p className="text-gray-600 mt-2">World-class telephony system with AI-powered voice capabilities</p>
+        <div className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Call Center</h1>
+            <p className="text-gray-600 mt-2">World-class telephony system with AI-powered voice capabilities</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleCallHistory}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                showCallHistory 
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                  : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              Call History
+            </button>
+          </div>
         </div>
 
         {/* Error Display */}
@@ -1380,6 +1432,104 @@ const CallCenterPage = () => {
           setShowIncomingCall(false);
         }}
       />
+
+      {/* Call History Panel */}
+      {showCallHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Call History</h2>
+                <p className="text-gray-600 text-sm">Recent calls from call management service</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadCallHistory}
+                  disabled={historyLoading}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${historyLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+                <button
+                  onClick={() => setShowCallHistory(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {historyLoading ? (
+                <div className="text-center py-12">
+                  <Loader className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+                  <p className="text-gray-600">Loading call history...</p>
+                </div>
+              ) : callHistory.length === 0 ? (
+                <div className="text-center py-12">
+                  <Phone className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Call History</h3>
+                  <p className="text-gray-600 mb-4">Your call history will appear here once you make calls</p>
+                  <p className="text-sm text-gray-500">Service: Call Management API is connected and ready</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {callHistory.map((call, index) => (
+                    <div key={call.call_id || index} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${
+                            call.status === 'completed' ? 'bg-green-100 text-green-600' :
+                            call.status === 'failed' ? 'bg-red-100 text-red-600' :
+                            'bg-yellow-100 text-yellow-600'
+                          }`}>
+                            <Phone className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {call.to_number || call.phone_number || 'Unknown Number'}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {call.call_id ? `Call ID: ${call.call_id}` : `Index: ${index + 1}`}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-sm font-medium ${
+                            call.status === 'completed' ? 'text-green-600' :
+                            call.status === 'failed' ? 'text-red-600' :
+                            'text-yellow-600'
+                          }`}>
+                            {call.status || 'Unknown'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {call.created_at ? new Date(call.created_at).toLocaleString() : 
+                             call.timestamp ? new Date(call.timestamp).toLocaleString() : 
+                             'Time unknown'}
+                          </div>
+                        </div>
+                      </div>
+                      {call.duration && (
+                        <div className="text-sm text-gray-600">
+                          Duration: {call.duration}s
+                        </div>
+                      )}
+                      {call.cost && (
+                        <div className="text-sm text-gray-600">
+                          Cost: ${call.cost}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
