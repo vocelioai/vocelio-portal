@@ -1,6 +1,7 @@
 // Enhanced API configuration for wallet system and call transfer integration
 const API_BASE_URL = 'https://auth-service-313373223340.us-central1.run.app';
 const CALL_TRANSFER_API_URL = 'https://call-transfer-service-313373223340.us-central1.run.app';
+const CAMPAIGN_MANAGEMENT_API_URL = 'https://campaign-management-313373223340.us-central1.run.app';
 
 // Enhanced API call function supporting multiple base URLs
 export const apiCall = async (endpoint, options = {}, baseUrl = API_BASE_URL) => {
@@ -244,6 +245,121 @@ const refreshToken = async () => {
     console.error('Token refresh failed:', error);
     window.location.href = '/login';
   }
+};
+
+// Campaign Management API functions
+const campaignApiCall = async (endpoint, options = {}, baseUrl = CAMPAIGN_MANAGEMENT_API_URL) => {
+  const token = localStorage.getItem('access_token');
+  
+  const defaultOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+  };
+
+  console.log(`Making campaign API request to: ${baseUrl}${endpoint}`);
+  console.log('Options:', { ...defaultOptions, ...options });
+
+  try {
+    const response = await fetch(`${baseUrl}${endpoint}`, {
+      ...defaultOptions,
+      ...options,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired, try to refresh
+        await refreshToken();
+        // Retry the original request
+        const retryResponse = await fetch(`${baseUrl}${endpoint}`, {
+          ...defaultOptions,
+          ...options,
+        });
+        if (!retryResponse.ok) {
+          throw new Error(`Campaign API call failed: ${retryResponse.statusText}`);
+        }
+        return retryResponse.json();
+      }
+      throw new Error(`Campaign API call failed: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Campaign API call error:', error);
+    throw error;
+  }
+};
+
+export const campaignAPI = {
+  // Health check
+  getHealth: () => campaignApiCall('/health'),
+  
+  // Campaign Management
+  getCampaigns: async (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.append(key, value);
+      }
+    });
+    const queryString = query.toString();
+    const endpoint = queryString ? `/api/campaigns?${queryString}` : '/api/campaigns';
+    return await campaignApiCall(endpoint);
+  },
+  
+  createCampaign: (campaignData) => campaignApiCall('/api/campaigns', {
+    method: 'POST',
+    body: JSON.stringify(campaignData)
+  }),
+  
+  getCampaign: (campaignId) => campaignApiCall(`/api/campaigns/${campaignId}`),
+  
+  updateCampaign: (campaignId, campaignData) => campaignApiCall(`/api/campaigns/${campaignId}`, {
+    method: 'PUT',
+    body: JSON.stringify(campaignData)
+  }),
+  
+  deleteCampaign: (campaignId) => campaignApiCall(`/api/campaigns/${campaignId}`, {
+    method: 'DELETE'
+  }),
+  
+  // Campaign Control
+  scheduleCampaign: (campaignId) => campaignApiCall(`/api/campaigns/${campaignId}/schedule`, {
+    method: 'POST'
+  }),
+  
+  startCampaign: (campaignId) => campaignApiCall(`/api/campaigns/${campaignId}/start`, {
+    method: 'POST'
+  }),
+  
+  pauseCampaign: (campaignId) => campaignApiCall(`/api/campaigns/${campaignId}/pause`, {
+    method: 'POST'
+  }),
+  
+  // Campaign Analytics
+  getCampaignStats: (campaignId) => campaignApiCall(`/api/campaigns/${campaignId}/stats`),
+  
+  getCampaignContacts: async (campaignId, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.append(key, value);
+      }
+    });
+    const queryString = query.toString();
+    const endpoint = queryString ? `/api/campaigns/${campaignId}/contacts?${queryString}` : `/api/campaigns/${campaignId}/contacts`;
+    return await campaignApiCall(endpoint);
+  },
+  
+  // ML Optimization
+  getMLOptimization: (campaignId) => campaignApiCall(`/api/campaigns/${campaignId}/ml-optimization`),
+  
+  optimizeVoice: (campaignId, customerProfile) => campaignApiCall(`/api/campaigns/${campaignId}/voice-optimization`, {
+    method: 'POST',
+    body: JSON.stringify(customerProfile)
+  })
 };
 
 export { API_BASE_URL };

@@ -50,6 +50,9 @@ import CallCenterPage from './CallCenterPage';
 // Import enhanced Voices section
 import VoicesPageNew from './VoicesPageNew';
 
+// Import campaign management component
+import CampaignManagementPage from './CampaignManagementPage';
+
 // Import tool integration settings
 import ToolIntegrationSettings from './settings/ToolIntegrationSettings.jsx';
 
@@ -1262,6 +1265,15 @@ const VocilioDashboard = ({ onLogout, user }) => {
       ]
     },
     { 
+      id: 'marketing', 
+      label: 'Marketing', 
+      icon: Target,
+      subitems: [
+        { id: 'campaign-management', label: 'Campaign Management' },
+        { id: 'campaign-analytics', label: 'Campaign Analytics' }
+      ]
+    },
+    { 
       id: 'webrtc', 
       label: 'Video Calls', 
       icon: Video,
@@ -1473,6 +1485,29 @@ const VocilioDashboard = ({ onLogout, user }) => {
       case 'omnichannel-routing':
       case 'omnichannel-campaigns':
         return <OmnichannelDashboard />;
+      
+      // Marketing Section
+      case 'marketing':
+      case 'campaign-management':
+        return (
+          <div className="animate-fade-in">
+            <CampaignManagementPage />
+          </div>
+        );
+      case 'campaign-analytics':
+        return (
+          <div className="p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Campaign Analytics</h2>
+              <p className="text-gray-600">Advanced analytics and insights for your marketing campaigns</p>
+            </div>
+            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+              <Target className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Campaign Analytics</h3>
+              <p className="text-gray-600">Detailed campaign analytics dashboard coming soon</p>
+            </div>
+          </div>
+        );
       
       // WebRTC Video Calls Section
       case 'webrtc':
